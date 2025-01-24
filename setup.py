@@ -8,11 +8,11 @@ def read_requirements():
 
 def read_long_description():
     # Carrega o README principal
-    with open("readme/en.md", encoding="utf-8") as f:
+    with open("doc/readme/en.md", encoding="utf-8") as f:
         en_content = f.read()
     
     # Inclui link para o README em português
-    pt_link = "\n\n## 🌎 Other Languages\n\n- [Português](https://github.com/joaopalmeidao/streamlit_auth/blob/main/readme/pt-BR.md)\n"
+    pt_link = "\n\n## 🌎 Other Languages\n\n- [Português](https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/readme/pt-BR.md)\n"
     
     return en_content + pt_link
 
