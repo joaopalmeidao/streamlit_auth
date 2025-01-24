@@ -7,8 +7,14 @@ def read_requirements():
         return f.read().splitlines()
 
 def read_long_description():
-    with open("README.md", encoding="utf-8") as f:
-        return f.read()
+    # Carrega o README principal
+    with open("readme/en.md", encoding="utf-8") as f:
+        en_content = f.read()
+    
+    # Inclui link para o README em português
+    pt_link = "\n\n## 🌎 Other Languages\n\n- [Português](https://github.com/joaopalmeidao/streamlit_auth/blob/main/readme/pt-BR.md)\n"
+    
+    return en_content + pt_link
 
 setup(
     name="streamlit_auth_mfa",

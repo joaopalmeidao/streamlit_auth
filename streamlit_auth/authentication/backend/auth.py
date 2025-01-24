@@ -375,7 +375,7 @@ class Authenticate:
     
     def _request_password_reset(self, container=st):
         with container:
-            with st.expander('Solicitar Redefinição de Senha'):
+            with st.expander('♻️ Solicitar Redefinição de Senha'):
                 form = st.form('password_reset')
                 username = form.text_input("Username")
                 if form.form_submit_button("Enviar Link de Redefinição"):
@@ -450,7 +450,7 @@ class Authenticate:
     def _request_2fa_reset(self, container=st):
         with container:
             if self.require_2fa:
-                with st.expander('Solicitar Redefinição de 2FA'):
+                with st.expander('♻️ Solicitar Redefinição de 2FA'):
                     form = st.form('2fa_reset')
                     username = form.text_input("Username")
                     if form.form_submit_button("Enviar Link de Redefinição"):

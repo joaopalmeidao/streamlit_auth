@@ -7,6 +7,7 @@ import os
 
 MAIN_LOGGER_NAME = "main_logger"
 
+logger = logging.getLogger(MAIN_LOGGER_NAME)
 
 # Função auxiliar para converter strings para booleanos
 def str_to_bool(value: str) -> bool:
@@ -89,4 +90,4 @@ if DEBUG:
 # Exibir mensagens de aviso
 if _messages:
     for msg in _messages:
-        print(f'WARNING: {msg}')
+        logger.warning(f'SETTINGS WARNING: {msg}')

@@ -7,7 +7,7 @@ from streamlit_auth.authentication.backend.auth import (
 
 
 def user_register_page():
-    with st.expander('🔑 Criar Conta'):
+    with st.expander('📝 Criar Conta'):
         # Form para cada ação
         with st.form(key="user_register_form"):
             nome = st.text_input("Nome Completo:")
