@@ -62,10 +62,6 @@ DEBUG = str_to_bool(os.getenv("DEBUG", "False"))
 
 APP_NAMES = json.loads(os.getenv("APP_NAMES", '["Test1", "Test2", "Test3"]'))
 
-# Secret Key para autenticação
-DEFAULT_SECRET_SERVER = '3a5f756fec09f3edf8f1feb97d7d11329be019c290b4fd4704f1ba24805043f4'
-SECRET_SERVER = os.getenv('SECRET_SERVER', DEFAULT_SECRET_SERVER)
-
 # ////////////////////////////////////////////
 # Configuração de Email:
 # ////////////////////////////////////////////
@@ -81,8 +77,6 @@ EMAIL_URI_DATA = load_json_config("EMAIL_URI_DATA", EMAIL_URI_DATA_DEFAULT)
 
 
 # Avisos sobre configurações críticas
-if SECRET_SERVER == DEFAULT_SECRET_SERVER:
-    _messages.append('TROCAR SECRET_SERVER para uma chave segura e única.')
 if DEBUG:
     _messages.append('RODANDO EM DEBUG')
 
