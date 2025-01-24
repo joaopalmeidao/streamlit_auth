@@ -54,6 +54,7 @@ def main():
         session_expiry_days=7,
         require_2fa=False,
         auth_reset_views=False,
+        site_name='http://localhost:8501/'
     )
     
     user_data = authenticator.login("Login")

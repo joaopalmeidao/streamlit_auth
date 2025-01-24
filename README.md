@@ -1,4 +1,4 @@
-# Meu Projeto
+# Streamlit Auth
 
 Este é um pacote Python para autenticação segura com Streamlit e 2FA. Ele oferece:
 
@@ -6,16 +6,21 @@ Este é um pacote Python para autenticação segura com Streamlit e 2FA. Ele ofe
 - Suporte para autenticação de dois fatores (2FA) com TOTP.
 - Gerenciamento de sessões no banco de dados.
 - Suporte para cookies e gerenciamento de estado no Streamlit.
+- Interface para gerenciamento de usuários e permissões.
+
+![Gerenciar Permissões](doc/imgs/gerenciar_perms.png)
+![Gerenciar Usuários](doc/imgs/gerenciar_usuarios.png)
 
 ## Instalação
 
 ```bash
-pip install streamlit_auth
+pip install streamlit-auth-mfa
 ```
 
 ## Exemplo de uso
 
 ```python
+
 import streamlit as st
 import logging
 
@@ -72,6 +77,7 @@ def main():
         session_expiry_days=7,
         require_2fa=False,
         auth_reset_views=False,
+        site_name='http://localhost:8501/'
     )
     
     user_data = authenticator.login("Login")
@@ -108,5 +114,6 @@ def main():
                 )
             if dd_opcoes_admin == "Gerenciar":
                 main_page_auth()
+
 
 ```

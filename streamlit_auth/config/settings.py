@@ -48,7 +48,7 @@ LOG_LEVEL = logging._nameToLevel.get(
 
 # Configurações de leitura do banco de dados de produção
 DB_URI_DATA_DEFAULT = 'sqlite:///db.sqlite3'
-DB_URI = load_json_config("DB_URI", DB_URI_DATA_DEFAULT)
+DB_URI = os.getenv("DB_URI", DB_URI_DATA_DEFAULT)
 
 # //////////////////////////////////////////// 
 # DEBUG
