@@ -54,17 +54,16 @@ class Authenticate:
         'logout': False,
     }
 
-    MAX_SESSIONS = 5
-    
-    PERMISSIONS = []
-    
     def __init__(self, 
         secret_key: str,
         session_expiry_days: int = 7,
         require_2fa: bool = True,
         cookie_name: str = 'session',
         auth_reset_views = False,
-        site_name = 'http://localhost:8501/'
+        site_name = 'http://localhost:8501/',
+        
+        max_sessions=None
+        
         ):
         self.cookie_name = cookie_name
         self.secret_key = secret_key
@@ -74,13 +73,15 @@ class Authenticate:
         self.site_name = site_name
         
         self.cookie_manager = stx.CookieManager()
+        
+        self.max_sessions = max_sessions
 
         # Inicializa o session_state caso não exista
         self._initialize_session_state()
 
         # Checa e restaura a sessão a partir do cookie
         self._check_and_restore_session_from_cookie()
-        
+
         if self.auth_reset_views:
             if not all(settings.EMAIL_URI_DATA.values()):
                 logger.warning("Configurações de email estão incompletas. Funcionalidades de email podem não funcionar corretamente.")
@@ -98,9 +99,6 @@ class Authenticate:
         try:
             # Verificar se já existe algum usuário no banco
             user_count = session.query(TbUsuarioStreamlit).count()
-            
-            print(user_count)
-
             if user_count == 0:
                 # Se não houver nenhum usuário, cria um usuário admin
                 logger.info("Nenhum usuário encontrado. Criando o usuário admin...")
@@ -136,7 +134,7 @@ class Authenticate:
     def _check_and_restore_session_from_cookie(self):
         """Lê o cookie session_id, busca a sessão no DB e restaura o estado do usuário se válido."""
         session_id = self.cookie_manager.get(self.cookie_name)
-
+        
         if session_id:
             session_data = Authenticate._get_session_by_id(session_id)
 
@@ -146,7 +144,7 @@ class Authenticate:
                     authenticated_2fa = session_data['authenticated_2fa']
 
                     # Busca dados do usuário no DB
-                    df_user = Authenticate._get_user_by_id(user_id)
+                    df_user = self._get_user_by_id(user_id)
 
                     if not df_user.empty:
                         # Atualiza session_state apenas se não estiver já autenticado
@@ -242,12 +240,13 @@ class Authenticate:
     
     def _create_session(self, user_id: int, authenticated_2fa: bool) -> str:
         """Cria uma nova sessão no banco de dados e retorna o session_id."""
-        active_sessions = self._get_active_sessions(user_id)
-        if len(active_sessions) >= self.MAX_SESSIONS:
-            # Revoga a sessão mais antiga
-            oldest_session = active_sessions.iloc[0]
-            Authenticate.revoke_session(session_id=oldest_session['session_id'])
-            logger.debug(f"Limite de sessões atingido para o usuário {user_id}. Sessão antiga revogada.")
+        if self.max_sessions:
+            active_sessions = self._get_active_sessions(user_id)
+            if len(active_sessions) >= self.max_sessions:
+                # Revoga a sessão mais antiga
+                oldest_session = active_sessions.iloc[0]
+                Authenticate.revoke_session(session_id=oldest_session['session_id'])
+                logger.debug(f"Limite de sessões atingido para o usuário {user_id}. Sessão antiga revogada.")
         
         session_id = self._generate_session_id()
         created_at = datetime.utcnow()
@@ -326,7 +325,8 @@ class Authenticate:
     def _clear_session_and_cookie(self, session_id: str):
         """Limpa sessão e cookie ao fazer logout ou falha de autenticação."""
         logger.debug('Limpando sessão e cookie...')
-        self.cookie_manager.delete(self.cookie_name)
+        if self.cookie_name in self.cookie_manager.cookies:
+            self.cookie_manager.delete(self.cookie_name) 
         try:
             with engine.begin() as con:
                 con.execute(text('''
@@ -340,7 +340,7 @@ class Authenticate:
         st.session_state['logout'] = True
         st.session_state['authentication_status'] = False
         st.session_state['authenticated_2fa'] = False
-
+        
     def login(self, form_name: str, container: st = st):
         """
         Realiza o fluxo completo de login:
@@ -371,8 +371,8 @@ class Authenticate:
         if not st.session_state['authentication_status']:
             if self.auth_reset_views:
                 self._request_password_reset(col1)
-            login_form = container.form('Login')
 
+            login_form = container.form('Login')
             login_form.subheader(form_name)
             
             username = login_form.text_input('Username', key='login_username_input').lower().strip()
@@ -402,7 +402,7 @@ class Authenticate:
     def _component_require2fa(self):
         if st.session_state['authentication_status'] and not st.session_state['authenticated_2fa']:
             user_id = st.session_state['user_id']
-            df_user = Authenticate._get_user_by_id(user_id)
+            df_user = self._get_user_by_id(user_id)
             secret_db = df_user['secret_tfa'][0]
 
             if not secret_db:
@@ -603,33 +603,20 @@ class Authenticate:
         finally:
             session.close()
 
-    def _get_user_by_id(user_id: int):
-        """Recupera dados do usuário pelo id utilizando o ORM e retorna como DataFrame."""
-        session = Session(engine)
-        try:
-            user = session.query(TbUsuarioStreamlit).filter_by(id=user_id, ativo=True).first()
-            if user:
-                # Convertendo o objeto para DataFrame
-                return pd.DataFrame([{
-                    'id': user.id,
-                    'nome': user.nome,
-                    'email': user.email,
-                    'username': user.username,
-                    'password': user.password,
-                    'role': user.role,
-                    'ativo': user.ativo,
-                    'data_alteracao': user.data_alteracao,
-                    'secret_tfa': user.secret_tfa,
-                    'reset_token': user.reset_token,
-                    'reset_token_expiry': user.reset_token_expiry
-                }])
-            else:
-                return pd.DataFrame()  # Caso não encontre o usuário
-        except Exception as e:
-            logger.error(f"Erro ao recuperar usuário: {e}")
-            return pd.DataFrame()  # Retorna um DataFrame vazio em caso de erro
-        finally:
-            session.close()
+    def _get_user_by_id(self, user_id: int):
+        if user_id:
+            return pd.read_sql(
+                text('''
+                    SELECT *
+                    FROM TbUsuarioStreamlit
+                    WHERE id = :user_id
+                    AND ATIVO = 1
+                    order by id desc
+                '''),
+                engine, params={'user_id': int(user_id)}
+            ).head(1)
+        else:
+            return pd.DataFrame()
 
     def select_usuarios():
         with engine.begin() as con:
