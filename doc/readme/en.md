@@ -200,7 +200,7 @@ def test_page():
             user_profile_page(user_data)
 ```
 
-### Gerenciamento
+### Management
 
 Use the user_manager_main_page function to display the user permissions management screen. Here is how to implement it:
 
