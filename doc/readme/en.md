@@ -42,6 +42,10 @@ The Streamlit Auth Library is a robust authentication and user management librar
 
 ![Register Form](https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/imgs/user_register.png?raw=True)
 
+### User Activation Form
+
+![User Activation Form](https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/imgs/user_activation.png?raw=True)
+
 ### User Profile
 
 ![User Profile](https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/imgs/user_profile.png?raw=True)
