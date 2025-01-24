@@ -19,7 +19,7 @@ def pagina_gerenciar_usuarios():
     # Exibir a tabela de usuários existentes
     st.subheader("📋 Lista de Usuários")
     if not df_usuarios.empty:
-        st.dataframe(df_usuarios, use_container_width=True)
+        st.dataframe(df_usuarios, height=300, use_container_width=True)
     else:
         st.info("Nenhum usuário encontrado.")
 
