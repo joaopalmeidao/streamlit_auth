@@ -575,34 +575,19 @@ class Authenticate:
         except:
             return
 
-    def _select_usuario(username: str):
-        """Busca o usuário pelo username e retorna como DataFrame."""
-        session = Session(engine)
-        try:
-            user = session.query(TbUsuarioStreamlit).filter_by(username=username, ativo=True).first()
-            if user:
-                # Convertendo o objeto para DataFrame
-                return pd.DataFrame([{
-                    'id': user.id,
-                    'nome': user.nome,
-                    'email': user.email,
-                    'username': user.username,
-                    'password': user.password,
-                    'role': user.role,
-                    'ativo': user.ativo,
-                    'data_alteracao': user.data_alteracao,
-                    'secret_tfa': user.secret_tfa,
-                    'reset_token': user.reset_token,
-                    'reset_token_expiry': user.reset_token_expiry
-                }])
-            else:
-                return pd.DataFrame()  # Caso não encontre o usuário
-        except Exception as e:
-            logger.error(f"Erro ao buscar usuário: {e}")
-            return pd.DataFrame()  # Retorna um DataFrame vazio em caso de erro
-        finally:
-            session.close()
-
+    def _select_usuario(self, username: str):
+        # Ajuste a query conforme a necessidade
+        return pd.read_sql(
+            text('''
+                SELECT *
+                FROM dbo.TbUsuarioStreamlit
+                WHERE username = :username 
+                AND ATIVO = 1
+                ORDER BY id DESC
+            '''),
+            engine, params={'username': username}
+        ).head(1)
+        
     def _get_user_by_id(self, user_id: int):
         if user_id:
             return pd.read_sql(
@@ -628,32 +613,14 @@ class Authenticate:
         return df
     
     def select_usuarios_ativos():
-        """Busca todos os usuários ativos com o papel 'admin' e retorna como DataFrame."""
-        session = Session(engine)
-        try:
-            users = session.query(TbUsuarioStreamlit).filter_by(role='admin', ativo=True).all()
-            if users:
-                # Convertendo os resultados para DataFrame
-                return pd.DataFrame([{
-                    'id': user.id,
-                    'nome': user.nome,
-                    'email': user.email,
-                    'username': user.username,
-                    'password': user.password,
-                    'role': user.role,
-                    'ativo': user.ativo,
-                    'data_alteracao': user.data_alteracao,
-                    'secret_tfa': user.secret_tfa,
-                    'reset_token': user.reset_token,
-                    'reset_token_expiry': user.reset_token_expiry
-                } for user in users])
-            else:
-                return pd.DataFrame()  # Retorna um DataFrame vazio caso não encontre
-        except Exception as e:
-            logger.error(f"Erro ao buscar usuários ativos: {e}")
-            return pd.DataFrame()  # Retorna um DataFrame vazio em caso de erro
-        finally:
-            session.close()
+        with engine.begin() as con:
+            df = pd.read_sql(text(f'''
+                SELECT * FROM dbo.TbUsuarioStreamlit 
+                WHERE role = 'admin'
+                AND ATIVO = 1
+                order by id desc
+                '''), con)
+        return df
         
     def insert_usuario(
         nome, username, password, email, role
