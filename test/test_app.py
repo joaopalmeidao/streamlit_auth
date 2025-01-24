@@ -38,16 +38,16 @@ def test_page():
     role = user_data['role']
 
     st.sidebar.write(TITLE)
+
+    # Mensagens básicas
+    if not authentication_status:
+        st.warning("Por favor, insira seu nome de usuário.")
+        authenticator.user_register_form()
+        return
     
     # Logout
     if authentication_status:
         authenticator.logout("Logout")
-
-    # Mensagens básicas
-    if authentication_status == False:
-        st.warning("Por favor, insira seu nome de usuário.")
-        authenticator.user_register_form()
-        return
 
     # Se já autenticado com 2FA OK, mostra aplicação
     if authentication_status and authenticated_2fa:

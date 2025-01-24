@@ -59,7 +59,7 @@ def user_profile_page(user_data):
         submit_reset = st.form_submit_button(label="Redefinir Senha")
 
     if submit_reset:
-        df_user: pd.DataFrame = Authenticate.select_usuario_by_username(user_data['username'])
+        df_user: pd.DataFrame = Authenticate.get_active_user_by_username(user_data['username'])
         
         # Verifica a senha atual
         if not Authenticate.check_password(current_password, df_user['password'][0]):

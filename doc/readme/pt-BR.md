@@ -164,15 +164,15 @@ def test_page():
 
     st.sidebar.write(TITLE)
     
-    # Logout
-    if authentication_status:
-        authenticator.logout("Logout")
-
     # Mensagens básicas
-    if authentication_status == False:
+    if not authentication_status:
         st.warning("Por favor, insira seu nome de usuário.")
         authenticator.user_register_form()
         return
+
+    # Logout
+    if authentication_status:
+        authenticator.logout("Logout")
 
     # Se já autenticado com 2FA OK, mostra aplicação
     if authentication_status and authenticated_2fa:

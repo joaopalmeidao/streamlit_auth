@@ -111,7 +111,7 @@ class Authenticate:
                     authenticated_2fa = session_data['authenticated_2fa']
 
                     # Busca dados do usuário no DB
-                    df_user = self.get_user_by_id(user_id)
+                    df_user = self.get_active_user_by_id(user_id)
 
                     if not df_user.empty:
                         # Atualiza session_state apenas se não estiver já autenticado
@@ -239,7 +239,7 @@ class Authenticate:
     def _component_require2fa(self):
         if st.session_state['authentication_status'] and not st.session_state['authenticated_2fa']:
             user_id = st.session_state['user_id']
-            df_user = self.get_user_by_id(user_id)
+            df_user = self.get_active_user_by_id(user_id)
             secret_db = df_user['secret_tfa'][0]
 
             if not secret_db:
@@ -572,25 +572,29 @@ class Authenticate:
                 form = st.form('activation_request')
                 username = form.text_input("Username")
                 if form.form_submit_button("Enviar Link de Ativação"):
-                    if not username:
-                        st.error('Preencha o username.')
-                        return
-                    
-                    with st.spinner('Enviando...'):
-                        with engine.begin() as con:
-                            result = con.execute(text('''
-                                SELECT email
-                                FROM TbUsuarioStreamlit
-                                WHERE username = :username
-                            '''), {'username': username}).fetchone()
+                    df_user = Authenticate.get_active_user_by_username(username)
+                    if df_user.empty:
+                        if not username:
+                            st.error('Preencha o username.')
+                            return
                         
-                        if result:
-                            email = result[0]
-                            token, expiry = self.generate_activation_token(username)
-                            activation_url = f"{self.site_name}?activation_token={token}"
-                            self.send_activation_email(username, email, activation_url)
-                            st.success("Um link de ativação foi enviado para o seu e-mail.")
-    
+                        with st.spinner('Enviando...'):
+                            with engine.begin() as con:
+                                result = con.execute(text('''
+                                    SELECT email
+                                    FROM TbUsuarioStreamlit
+                                    WHERE username = :username
+                                '''), {'username': username}).fetchone()
+                            
+                            if result:
+                                email = result[0]
+                                token, _ = self.generate_activation_token(username)
+                                activation_url = f"{self.site_name}?activation_token={token}"
+                                self.send_activation_email(username, email, activation_url)
+                                st.success("Um link de ativação foi enviado para o seu e-mail.")
+                    else:
+                        st.error('Usuário já está ativo.')
+
     def user_register_form(self):
         col1, col2 = st.columns([2, 1])
         
@@ -623,6 +627,7 @@ class Authenticate:
                                     message = f"Foi enviado um email de ativação para {email}."
                                 st.success(message)
                             except Exception as e:
+                                logger.error(e, exc_info=True)
                                 display_validation_errors(e)
                     else:
                         st.error("As senhas não coincidem.")
@@ -673,13 +678,15 @@ class Authenticate:
                 if not username:
                     container.error("Preencha o campo Username.")
 
-                with container.spinner('Carregando...'):
-                    if self.check_credentials(username, password):
-                        
-                        self._component_create_session()
-                        logger.debug(f"Usuário {username} autenticado com sucesso.")
-                    else:
-                        container.error('Usuário ou senha incorretos.')
+                if self.check_credentials(username, password):
+                    
+                    self._component_create_session()
+                    logger.debug(f"Usuário {username} autenticado com sucesso.")
+                else:
+                    container_message = st.empty()
+                    container_message.error('Usuário ou senha incorretos.')
+                    # sleep(2)  # Wait 2 seconds
+                    container_message.empty()
 
         # # # Passo 2: Usuário e senha ok, mas falta 2FA
         if self.require_2fa:
@@ -691,7 +698,7 @@ class Authenticate:
         return self._get_user_data()
     
     def check_credentials(self, username: str, password: str) -> bool:
-        df_user = Authenticate.select_usuario_by_username(username)
+        df_user = Authenticate.get_active_user_by_username(username)
         if df_user.empty:
             self._clear_session_and_cookie(None)
             return False
@@ -817,7 +824,7 @@ class Authenticate:
         return token, expiry
     
     @staticmethod
-    def select_usuario_by_username(username: str):
+    def get_active_user_by_username(username: str):
         # Ajuste a query conforme a necessidade
         return pd.read_sql(
             text('''
@@ -829,9 +836,22 @@ class Authenticate:
             '''),
             engine, params={'username': username}
         ).head(1)
+        
+    @staticmethod
+    def get_existant_user_by_username(username: str):
+        # Ajuste a query conforme a necessidade
+        return pd.read_sql(
+            text('''
+                SELECT *
+                FROM TbUsuarioStreamlit
+                WHERE username = :username 
+                ORDER BY id DESC
+            '''),
+            engine, params={'username': username}
+        ).head(1)
     
     @staticmethod
-    def get_user_by_id(user_id: int):
+    def get_active_user_by_id(user_id: int):
         if user_id:
             return pd.read_sql(
                 text('''
@@ -881,9 +901,7 @@ class Authenticate:
         )
         if not validate['valid']:
             raise ValidationError(validate['errors'])
-        
-        df_usuarios = Authenticate.get_all_users()
-        if df_usuarios[df_usuarios['username'] == username].empty:
+        if Authenticate.get_existant_user_by_username(username).empty:
             hashed_pass = Authenticate.hash(password)
             try:
                 with engine.begin() as con:
@@ -911,7 +929,7 @@ class Authenticate:
             except Exception as e:
                 logger.error(e, exc_info=True)
         else:
-            raise Exception('Já existe um usuário com esse username.')
+            raise ValidationError(['Já existe um usuário com esse username.'])
 
     @staticmethod
     def update_dados(username, new_username=None, new_email=None, new_role=None, new_name=None):  
@@ -1199,7 +1217,7 @@ class Authenticate:
     @staticmethod
     def adicionar_permissao(username, app_name):
         u_permissions = Authenticate.get_user_permissions(username)
-        df_user: pd.DataFrame = Authenticate.select_usuario_by_username(username)
+        df_user: pd.DataFrame = Authenticate.get_active_user_by_username(username)
         user_id = df_user['id'].values[0]
         if app_name not in u_permissions.app_name.to_list():
             df = pd.DataFrame([{
