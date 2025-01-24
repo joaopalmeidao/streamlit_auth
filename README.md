@@ -22,7 +22,7 @@ pip install streamlit-auth-mfa
 
 A biblioteca utiliza variáveis de ambiente e arquivos de configuração para personalizar comportamentos. Certifique-se de configurar os arquivos necessários antes de usar a biblioteca.
 
-.env
+### .env
 
 As variáveis de ambiente devem ser configuradas no arquivo .env:
 
