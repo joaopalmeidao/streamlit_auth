@@ -12,7 +12,7 @@ def read_long_description():
 
 setup(
     name="streamlit_auth_mfa",
-    version="2.0.1",
+    version="2.0.2",
     description="Uma biblioteca para autenticação segura com Streamlit e 2FA.",
     long_description=read_long_description(), 
     long_description_content_type="text/markdown",
