@@ -47,7 +47,7 @@ def main():
         secret_key='123',
         session_expiry_days=7,
         require_2fa=False,
-        auth_reset_views=False,
+        auth_reset_views=True,
         site_name='http://localhost:8501/',
     )
     
@@ -68,7 +68,7 @@ def main():
 
     # Mensagens básicas
     if authentication_status == False:
-        st.warning("Por favor, insira seu nome de usuário e senha corretamente.")
+        st.warning("Por favor, insira seu nome de usuário.")
         return
 
     # Se já autenticado com 2FA OK, mostra aplicação

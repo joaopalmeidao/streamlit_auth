@@ -4,13 +4,31 @@ Descrição
 
 A Streamlit Auth Library é uma biblioteca que adiciona autenticação robusta e recursos de gerenciamento de usuários ao seu aplicativo Streamlit. Com suporte para autenticação de dois fatores (2FA), permissões e gerenciamento de sessões, ela é ideal para aplicativos que requerem segurança e controle de acesso.
 
+## PyPI
+
 [PyPI - streamlit-auth-mfa](https://pypi.org/project/streamlit-auth-mfa/)
 
 ## Telas Prontas
 
-![Gerenciar Permissões](doc/imgs/gerenciar_perms.png)
+### Gerenciar Permissões
 
-![Gerenciar Usuários](doc/imgs/gerenciar_usuarios.png)
+![Gerenciar Permissões](https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/imgs/gerenciar_perms.png?raw=True)
+
+### Gerenciar Usuários
+
+![Gerenciar Usuários](https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/imgs/gerenciar_perms.png?raw=True)
+
+### Login Form
+
+![Login Form](https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/imgs/login_form.png?raw=True)
+
+### 2FA Form
+
+![2FA Form](https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/imgs/mfa_form.png?raw=True)
+
+### Reset Form
+
+![Reset Forms](https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/imgs/reset_forms.png?raw=True)
 
 ## Instalação
 

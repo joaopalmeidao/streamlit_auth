@@ -530,7 +530,6 @@ class Authenticate:
         auth_form = container.form(f"2fa_auth_form")
         auth_form.subheader("Autenticação 2FA")
         otp = auth_form.text_input("Digite o código 2FA", key=f"2fa_auth_code_input")
-        container.write("**Atenção:** Se você perdeu o acesso ao 2FA, por favor, entre em contato com o administrador do sistema.")
         submitted = auth_form.form_submit_button("Autenticar")
 
         if submitted:
