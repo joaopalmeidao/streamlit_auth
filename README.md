@@ -114,7 +114,7 @@ A biblioteca fornece modelos integrados para gerenciar usuários e sessões:
 
 ## Envio de E-mails
 
-Use a função pagina_gerenciar_permissao para permitir ou remover permissões de usuários. Veja como implementar:
+Com a classe SendMail, você pode enviar e-mails com suporte para anexos e imagens.
 
 ```python
 from streamlit_auth.enviar_email import SendMail
