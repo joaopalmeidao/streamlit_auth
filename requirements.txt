@@ -1,0 +1,9 @@
+streamlit==1.41.1
+sqlalchemy==1.4.45
+bcrypt==4.0.1
+pandas==1.5.1
+numpy==1.26.4
+pyotp==2.9.0
+qrcode==8.0
+extra-streamlit-components==0.1.60
+python-dotenv==1.0.1
