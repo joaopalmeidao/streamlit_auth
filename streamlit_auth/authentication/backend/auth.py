@@ -608,7 +608,6 @@ class Authenticate:
         with engine.begin() as con:
             df = pd.read_sql(text(f'''
                 SELECT * FROM TbUsuarioStreamlit 
-                WHERE role = 'admin'
                 ORDER by id DESC
                 '''), con)
         return df
@@ -617,8 +616,7 @@ class Authenticate:
         with engine.begin() as con:
             df = pd.read_sql(text(f'''
                 SELECT * FROM dbo.TbUsuarioStreamlit 
-                WHERE role = 'admin'
-                AND active = 1
+                WHERE active = 1
                 ORDER by id DESC
                 '''), con)
         return df
