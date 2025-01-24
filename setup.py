@@ -12,7 +12,7 @@ def read_long_description():
         return f.read()
 
 setup(
-    name="streamlit_auth",  # Nome do seu pacote
+    name="streamlit-auth-mfa",  # Nome do seu pacote
     version="1.0.0",  # Versão do seu pacote
     description="Uma biblioteca para autenticação segura com Streamlit e 2FA.",
     long_description=read_long_description(),  # Descrição longa no PyPI
