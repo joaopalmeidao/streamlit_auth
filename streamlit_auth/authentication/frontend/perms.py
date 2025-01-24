@@ -9,7 +9,7 @@ def pagina_gerenciar_permissao():
     st.title("🔑 Gerenciar Permissões")
     
     df_perms = Authenticate.get_all_permissions()
-    df_all_users = Authenticate.select_usuarios()
+    df_all_users = Authenticate.select_all_users()
     lista_perms = settings.APP_NAMES
     
     # Mesclar permissões globais com permissões específicas

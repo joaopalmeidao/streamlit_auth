@@ -20,6 +20,8 @@ from sqlalchemy import (
 from streamlit_auth.core.database.manager import default_engine as engine
 
 
+ROLES = ["user", "admin"]
+
 Base = declarative_base()
 
 class TbUsuarioStreamlit(Base):
@@ -27,19 +29,19 @@ class TbUsuarioStreamlit(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     
-    nome = Column(String(255))  # Definindo limite para a coluna 'nome'
-    email = Column(String(255))  # Definindo limite para a coluna 'email'
+    name = Column(String(255)) 
+    email = Column(String(255))
     
-    username = Column(String(64), unique=True, nullable=False)  # 'username' com 64 caracteres
-    password = Column(Text)  # Pode ser um 'Text' sem limite porque é a senha (normalmente criptografada)
+    username = Column(String(64), unique=True, nullable=False)
+    password = Column(Text)
     
-    data_alteracao = Column(DateTime, default=datetime.utcnow)
-    ativo = Column(Boolean, default=True)
-    role = Column(String(32))  # Definindo limite para a coluna 'role' (32 caracteres é suficiente para 'admin', 'user' etc.)
+    change_date = Column(DateTime, default=datetime.utcnow)
+    active = Column(Boolean, default=True)
+    role = Column(String(32))
     
-    secret_tfa = Column(String(255))  # Limite de 255 caracteres para 'secret_tfa'
+    secret_tfa = Column(String(255))
     
-    reset_token = Column(String(255))  # Limite de 255 caracteres para 'reset_token'
+    reset_token = Column(String(255))
     reset_token_expiry = Column(DateTime)
 
     # Relacionamento com TbSessaoStreamlit
@@ -74,7 +76,7 @@ class TbPermissaoUsuariosStreamlit(Base):
     user_id = Column(Integer, ForeignKey(TbUsuarioStreamlit.id), nullable=False)
     username = Column(String(64), nullable=False)
     app_name = Column(Text, nullable=False)
-    data = Column(DateTime, default=datetime.now)
+    date = Column(DateTime, default=datetime.now)
     
     user = relationship(TbUsuarioStreamlit, back_populates='perms')
 

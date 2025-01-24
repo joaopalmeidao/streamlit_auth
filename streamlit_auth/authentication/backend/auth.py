@@ -105,13 +105,13 @@ class Authenticate:
                 
                 # Criar um novo usuário admin com a senha "admin"
                 admin_user = TbUsuarioStreamlit(
-                    nome="Admin",
+                    name="Admin",
                     email="admin@domain.com",
                     username="admin",
                     password=Authenticate.hash("admin"),  # Lembre-se de hashear a senha!
                     role="admin",
-                    ativo=True,
-                    data_alteracao=datetime.utcnow()
+                    active=True,
+                    change_date=datetime.utcnow()
                 )
                 
                 session.add(admin_user)
@@ -153,7 +153,7 @@ class Authenticate:
                             st.session_state['session_id'] = session_id
                             
                             st.session_state['username'] = df_user['username'][0]
-                            st.session_state['name'] = str(df_user['nome'][0]).title()
+                            st.session_state['name'] = str(df_user['name'][0]).title()
                             st.session_state['role'] = df_user['role'][0]
                             st.session_state['email'] = df_user['email'][0]
 
@@ -429,6 +429,7 @@ class Authenticate:
     def _component_create_session(self):
         # Criar nova sessão
         session_id = self._create_session(int(st.session_state['user_id']), st.session_state['authenticated_2fa'])
+        logger.debug('Session ID', session_id)
         if session_id:
             st.session_state['session_id'] = session_id
             self._write_session_to_cookie(session_id)
@@ -460,7 +461,7 @@ class Authenticate:
         # Credenciais corretas
         st.session_state['user_id'] = df_user['id'][0]
         st.session_state['username'] = df_user['username'][0]
-        st.session_state['name'] = str(df_user['nome'][0]).title()
+        st.session_state['name'] = str(df_user['name'][0]).title()
         st.session_state['role'] = df_user['role'][0]
         st.session_state['email'] = df_user['email'][0]
         st.session_state['authentication_status'] = True
@@ -487,7 +488,7 @@ class Authenticate:
         
         # Gera QR Code
         totp = pyotp.TOTP(st.session_state['secret2fa_config'])
-        provisioning_uri = totp.provisioning_uri(username, issuer_name="saec-ct.apic3")
+        provisioning_uri = totp.provisioning_uri(username, issuer_name=self.site_name)
 
         qr = qrcode.make(provisioning_uri)
         buffered = io.BytesIO()
@@ -575,14 +576,14 @@ class Authenticate:
         except:
             return
 
-    def _select_usuario(self, username: str):
+    def _select_usuario(username: str):
         # Ajuste a query conforme a necessidade
         return pd.read_sql(
             text('''
                 SELECT *
-                FROM dbo.TbUsuarioStreamlit
+                FROM TbUsuarioStreamlit
                 WHERE username = :username 
-                AND ATIVO = 1
+                AND active = 1
                 ORDER BY id DESC
             '''),
             engine, params={'username': username}
@@ -595,66 +596,70 @@ class Authenticate:
                     SELECT *
                     FROM TbUsuarioStreamlit
                     WHERE id = :user_id
-                    AND ATIVO = 1
-                    order by id desc
+                    AND active = 1
+                    ORDER by id DESC
                 '''),
                 engine, params={'user_id': int(user_id)}
             ).head(1)
         else:
             return pd.DataFrame()
 
-    def select_usuarios():
+    def select_all_users():
         with engine.begin() as con:
             df = pd.read_sql(text(f'''
                 SELECT * FROM TbUsuarioStreamlit 
                 WHERE role = 'admin'
-                order by id desc
+                ORDER by id DESC
                 '''), con)
         return df
     
-    def select_usuarios_ativos():
+    def select_active_users():
         with engine.begin() as con:
             df = pd.read_sql(text(f'''
                 SELECT * FROM dbo.TbUsuarioStreamlit 
                 WHERE role = 'admin'
-                AND ATIVO = 1
-                order by id desc
+                AND active = 1
+                ORDER by id DESC
                 '''), con)
         return df
         
-    def insert_usuario(
-        nome, username, password, email, role
-    ):  
-        df_usuarios = Authenticate.select_usuarios()
+    def insert_user(
+        name, 
+        username,
+        password,
+        email,
+        role,
+        ):  
+        df_usuarios = Authenticate.select_all_users()
         if df_usuarios[df_usuarios['username'] == username].empty:
             hashed_pass = Authenticate.hash(password)
             with engine.begin() as con:
                 con.execute(text(f'''
                     INSERT INTO TbUsuarioStreamlit
-                    (NOME, EMAIL, USERNAME, PASSWORD, DATA_ALTERACAO, ROLE, ATIVO)
+                    (name, email, username, password, change_date, role, active)
                     VALUES (
-                        :NOME,
-                        :EMAIL,
-                        :USERNAME,
-                        :PASSWORD,
-                        :DATA_ALTERACAO,
-                        :ROLE,
-                        :ATIVO
+                        :name,
+                        :email,
+                        :username,
+                        :password,
+                        :change_date,
+                        :role,
+                        :active
                     )
                 '''),[{
-                    'NOME': nome.strip(),
-                    'EMAIL': email.strip(),
-                    'USERNAME': username.strip(),
-                    'PASSWORD': hashed_pass[0],
-                    'DATA_ALTERACAO': datetime.now(),
-                    'ATIVO': 1,
-                    'ROLE': role
+                    'name': name.strip(),
+                    'email': email.strip(),
+                    'username': username.strip(),
+                    'password': hashed_pass,
+                    'change_date': datetime.now(),
+                    'active': 1,
+                    'role': role
                 }])
         else:
             raise Exception('Já existe um usuário com esse username.')
 
     def update_dados(username, new_username=None, new_email=None, new_role=None, new_name=None):  
-        df_usuarios = Authenticate.select_usuarios()
+        df_usuarios = Authenticate.select_all_users()
         df_usuario = df_usuarios[df_usuarios['username'] == username].copy()
         if new_username:
             df_new_usuario = df_usuarios[df_usuarios['username'] == new_username.strip()].copy()
@@ -664,14 +669,14 @@ class Authenticate:
             else:
                 raise Exception('Não existe usuário com esse username.')
                 
-        nome = df_usuario['nome'].values[0]
+        name = df_usuario['name'].values[0]
         email = df_usuario['email'].values[0]
         role = df_usuario['role'].values[0]
         
         if not new_username:
             new_username = username
         if not new_name:
-            new_name = nome
+            new_name = name
         if not new_email:
             new_email = email
         if not new_role:
@@ -681,23 +686,23 @@ class Authenticate:
             con.execute(text(f'''
                 UPDATE TbUsuarioStreamlit
                 SET
-                    USERNAME = :USERNAME,
-                    EMAIL = :EMAIL,
-                    ROLE = :ROLE,
-                    NOME = :NOME,
-                    DATA_ALTERACAO = :DATA_ALTERACAO
-                WHERE USERNAME = :USERNAME_OLD
+                    username = :username,
+                    email = :email,
+                    role = :role,
+                    name = :name,
+                    change_date = :change_date
+                where username = :username_old
             '''),[{
-                'USERNAME': new_username.strip(),
-                'EMAIL': new_email.strip(),
-                'ROLE': new_role.strip(),
-                'NOME': new_name.strip(),
-                'DATA_ALTERACAO': datetime.now(),
-                'USERNAME_OLD': username
+                'username': new_username.strip(),
+                'email': new_email.strip(),
+                'role': new_role.strip(),
+                'name': new_name.strip(),
+                'change_date': datetime.now(),
+                'username_old': username
             }])
         
     def update_senha(username, new_password):  
-        df_usuarios = Authenticate.select_usuarios()
+        df_usuarios = Authenticate.select_all_users()
         df_usuario = df_usuarios[df_usuarios['username'] == username].copy()
         if not df_usuario.empty:
             hashed_pass = Authenticate.hash(new_password)
@@ -705,13 +710,13 @@ class Authenticate:
                 con.execute(text(f'''
                     UPDATE TbUsuarioStreamlit
                     SET
-                        PASSWORD = :PASSWORD,
-                        DATA_ALTERACAO = :DATA_ALTERACAO
-                    WHERE USERNAME = :USERNAME
+                        password = :password,
+                        change_date = :change_date
+                    WHERE username = :username
                 '''),[{
-                    'PASSWORD': hashed_pass,
-                    'DATA_ALTERACAO': datetime.now(),
-                    'USERNAME': username,
+                    'password': hashed_pass,
+                    'change_date': datetime.now(),
+                    'username': username,
                 }])
         else:
             raise Exception('Não existe usuário com esse username.')
@@ -721,31 +726,31 @@ class Authenticate:
             con.execute(text(f'''
                 DELETE FROM TbUsuarioStreamlit
                 WHERE 
-                    USERNAME = :USERNAME
+                    username = :username
             '''),[{
-                'USERNAME': username,
+                'username': username,
             }])
 
     def desativar_usuario(username):
         with engine.begin() as con:
             con.execute(text(f'''
                 UPDATE TbUsuarioStreamlit
-                SET ATIVO = 0
+                SET active = 0
                 WHERE 
-                    USERNAME = :USERNAME
+                    username = :username
             '''),[{
-                'USERNAME': username,
+                'username': username,
             }])
             
     def ativar_usuario(username):
         with engine.begin() as con:
             con.execute(text(f'''
                 UPDATE TbUsuarioStreamlit
-                SET ATIVO = 1
+                SET active = 1
                 WHERE 
-                    USERNAME = :USERNAME
+                    username = :username
             '''),[{
-                'USERNAME': username,
+                'username': username,
             }])
 
     def delete_secret(username):
@@ -754,9 +759,9 @@ class Authenticate:
                 UPDATE TbUsuarioStreamlit
                 SET secret_tfa = :secret
                 WHERE 
-                    USERNAME = :USERNAME
+                    username = :username
             '''),[{
-                'USERNAME': username,
+                'username': username,
                 'secret': None,
             }])
     
@@ -766,9 +771,9 @@ class Authenticate:
                 UPDATE TbUsuarioStreamlit
                 SET secret_tfa = :secret
                 WHERE 
-                    USERNAME = :USERNAME
+                    username = :username
             '''),[{
-                'USERNAME': username,
+                'username': username,
                 'secret': secret,
             }])
             
@@ -787,8 +792,8 @@ class Authenticate:
         if username:
             query_add = '''
                 user_id in (
-                    select id from TbUsuarioStreamlit
-                    where username = :username
+                    SELECT id from TbUsuarioStreamlit
+                    WHERE username = :username
                 )
             '''
             if 'WHERE'.lower() in query.lower():
@@ -991,7 +996,7 @@ class Authenticate:
                 'username': username,
                 'app_name': app_name,
             }])
-            df['data'] = datetime.now()
+            df['date'] = datetime.now()
             df.to_sql(
                 name='TbPermissaoUsuariosStreamlit',
                 con=engine,

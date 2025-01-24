@@ -35,11 +35,20 @@ ENV_LOC = find_dotenv()
 SYSTEM = system()
 
 # //////////////////////////////////////////// 
+# DEBUG
+# //////////////////////////////////////////// 
+
+DEBUG = str_to_bool(os.getenv("DEBUG", "False"))
+
+# //////////////////////////////////////////// 
 # Log Config:
 # //////////////////////////////////////////// 
 
+_DEFAULT_LOG_LEVEL = 'INFO'
+if DEBUG:
+    _DEFAULT_LOG_LEVEL = 'DEBUG'
 LOG_LEVEL = logging._nameToLevel.get(
-    os.getenv("LOG_LEVEL", "DEBUG")
+    os.getenv("LOG_LEVEL", _DEFAULT_LOG_LEVEL)
 )
 
 # ////////////////////////////////////////////
@@ -47,17 +56,11 @@ LOG_LEVEL = logging._nameToLevel.get(
 # ////////////////////////////////////////////
 
 # Configurações de leitura do banco de dados de produção
-DB_URI_DATA_DEFAULT = 'sqlite:///db.sqlite3'
-DB_URI = os.getenv("DB_URI", DB_URI_DATA_DEFAULT)
-
-# //////////////////////////////////////////// 
-# DEBUG
-# //////////////////////////////////////////// 
-
-DEBUG = str_to_bool(os.getenv("DEBUG", "False"))
+_DEFAULT_DB_URI = 'sqlite:///db.sqlite3'
+DB_URI = os.getenv("DB_URI", _DEFAULT_DB_URI)
 
 # ////////////////////////////////////////////
-# Configuração de Autenticação:
+# Configuração de Apps:
 # ////////////////////////////////////////////
 
 APP_NAMES = json.loads(os.getenv("APP_NAMES", '["Test1", "Test2", "Test3"]'))

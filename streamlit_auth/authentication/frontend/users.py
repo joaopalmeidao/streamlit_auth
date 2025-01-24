@@ -1,6 +1,7 @@
 import streamlit as st
 
 from streamlit_auth.config import settings
+from streamlit_auth.authentication.backend.models import ROLES
 from streamlit_auth.authentication.backend.auth import (
     Authenticate,
 )
@@ -10,7 +11,7 @@ def pagina_gerenciar_usuarios():
     st.title("🔑 Gerenciar Usuários")
 
     # Obter lista de usuários (sem a senha)
-    df_usuarios = Authenticate.select_usuarios().drop(columns=[
+    df_usuarios = Authenticate.select_all_users().drop(columns=[
         "password",
         "secret_tfa",
         "reset_token",
@@ -71,7 +72,7 @@ def pagina_gerenciar_usuarios():
             st.write("### Atualizar Dados do Usuário")
             new_email = st.text_input("Email:", value=df_user["email"].values[0])
             new_role = st.selectbox(
-                "Função:", ["user", "admin"], index=["user", "admin"].index(df_user["role"].values[0])
+                "Função:", ROLES, index=ROLES.index(df_user["role"].values[0])
             )
             new_name = st.text_input("Nome Completo:", value=df_user["nome"].values[0])
             if st.form_submit_button("Atualizar Dados"):
@@ -92,13 +93,13 @@ def pagina_gerenciar_usuarios():
             nome = st.text_input("Nome Completo:")
             username = st.text_input("Nome de Usuário:")
             email = st.text_input("Email:")
-            role = st.selectbox("Função:", ["user", "admin"], index=0)
+            role = st.selectbox("Função:", ROLES, index=0)
             password = st.text_input("Senha:", type="password")
             confirmar_senha = st.text_input("Confirmar Senha:", type="password")
             if st.form_submit_button("Adicionar Usuário"):
                 if password == confirmar_senha:
                     try:
-                        Authenticate.insert_usuario(nome, username, password, email, role)
+                        Authenticate.insert_user(nome, username, password, email, role)
                         st.success("Usuário adicionado com sucesso!")
                         st.rerun()
                     except Exception as e:
