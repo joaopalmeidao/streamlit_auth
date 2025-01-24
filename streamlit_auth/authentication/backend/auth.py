@@ -412,9 +412,9 @@ class Authenticate:
         
         with engine.begin() as con:
             result = con.execute(text('''
-                SELECT username, reset_token_expiry
+                SELECT username, reset_password_token_expiry
                 FROM TbUsuarioStreamlit
-                WHERE reset_token = :token
+                WHERE reset_password_token = :token
             '''), {'token': token}).fetchone()
 
         st.title("Redefinir Senha")
@@ -444,8 +444,8 @@ class Authenticate:
                     con.execute(text('''
                         UPDATE TbUsuarioStreamlit
                         SET password = :password,
-                            reset_token = NULL,
-                            reset_token_expiry = NULL
+                            reset_password_token = NULL,
+                            reset_password_token_expiry = NULL
                         WHERE username = :username
                     '''), {'password': hashed_pass, 'username': username})
 
