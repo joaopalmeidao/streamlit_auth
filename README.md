@@ -143,7 +143,6 @@ with SendMail(
     port=587,
     email="seu_email@gmail.com",
     password="sua_senha",
-    username="usuario"
 ) as mailer:
     mailer.destinatarios = ["destinatario@gmail.com"]
     mailer.assunto = "Teste"
