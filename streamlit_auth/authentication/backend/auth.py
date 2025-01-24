@@ -83,7 +83,7 @@ class Authenticate:
         self._check_and_restore_session_from_cookie()
 
         if self.auth_reset_views:
-            if not all(settings.EMAIL_URI_DATA.values()):
+            if not settings.EMAIL or settings.EMAIL_PASSWORD:
                 logger.warning("Configurações de email estão incompletas. Funcionalidades de email podem não funcionar corretamente.")
 
     def _initialize_session_state(self):
@@ -429,7 +429,7 @@ class Authenticate:
     def _component_create_session(self):
         # Criar nova sessão
         session_id = self._create_session(int(st.session_state['user_id']), st.session_state['authenticated_2fa'])
-        logger.debug('Session ID', session_id)
+        logger.debug(f'Session ID: {session_id}')
         if session_id:
             st.session_state['session_id'] = session_id
             self._write_session_to_cookie(session_id)
@@ -1011,28 +1011,23 @@ class Authenticate:
             '''), [{'username': username, 'app_name': app_name}])
     
     def send_reset_email(username, email, reset_url, reset_type):
-        mail = SendMail()
-        
-        mail.subtype = 'plain'
-        
-        mail.assunto = f'Redefinição de {reset_type}'
-        
-        mail.destinatarios = [
-            email,
-        ]
-        
-        message = f"""
-        
-    Olá {username},
+        with SendMail() as mail:
+            mail.subtype = 'plain'
+            mail.assunto = f'Redefinição de {reset_type}'
+            mail.destinatarios = [
+                email,
+            ]
+            message = f"""
+            
+        Olá {username},
 
-    Você solicitou a redefinição de {reset_type}. Clique no link abaixo para continuar:
+        Você solicitou a redefinição de {reset_type}. Clique no link abaixo para continuar:
 
-    {reset_url}
+        {reset_url}
 
-    Este link é válido por 1 hora. Se você não solicitou isso, ignore este e-mail.
-    
-    """
+        Este link é válido por 1 hora. Se você não solicitou isso, ignore este e-mail.
         
-        mail.enviar_email(
-            message,
-        )
+        """
+            mail.enviar_email(
+                message,
+            )

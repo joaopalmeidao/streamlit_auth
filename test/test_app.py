@@ -3,7 +3,7 @@ import logging
 
 from streamlit_auth.authentication import (
     Authenticate,
-    main_page_auth
+    main_page_gerenciar
 )
 from streamlit_auth.config import settings
 
@@ -11,13 +11,7 @@ from streamlit_auth.config import settings
 logger = logging.getLogger(settings.MAIN_LOGGER_NAME)
 
 
-def init_session_state(**kwargs):
-    for key, value in kwargs.items():
-        if not key in st.session_state.keys():
-            st.session_state[key] = value
-
 def init_app():
-    init_session_state()
     
     st.set_page_config(page_title="Strealit Authenticate", layout='wide')
 
@@ -52,8 +46,8 @@ def main():
     authenticator = Authenticate(
         secret_key='123',
         session_expiry_days=7,
-        require_2fa=True,
-        auth_reset_views=True,
+        require_2fa=False,
+        auth_reset_views=False,
         site_name='http://localhost:8501/',
     )
     
@@ -90,4 +84,4 @@ def main():
                 opcoes_admin,
                 )
             if dd_opcoes_admin == "Gerenciar":
-                main_page_auth()
+                main_page_gerenciar()

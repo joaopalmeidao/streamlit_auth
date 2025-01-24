@@ -1,9 +1,0 @@
-EMAIL_URI_DATA={"HOST":"smtp.gmail.com","PORT":587,"USERNAME":"","EMAIL":"","PASSWORD":""}
-
-DB_URI = sqlite:///db.sqlite3
-
-APP_NAMES=["Test1", "Test2", "Test3"]
-
-LOG_LEVEL="DEBUG"
-
-DEBUG=False

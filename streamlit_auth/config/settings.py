@@ -23,6 +23,14 @@ def load_json_config(env_var: str, default: dict) -> dict:
         print(f"Erro ao decodificar JSON para {env_var}: {e}")
         return default
 
+def load_json_file(file_path: str, default: dict) -> dict:
+    try:
+        with open(file_path, 'r') as f:
+            config = json.load(f)
+        return config
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"Erro ao carregar JSON de {file_path}: {e}")
+        return default
 
 # Inicializar mensagens de aviso
 _messages = []
@@ -63,21 +71,18 @@ DB_URI = os.getenv("DB_URI", _DEFAULT_DB_URI)
 # Configuração de Apps:
 # ////////////////////////////////////////////
 
-APP_NAMES = json.loads(os.getenv("APP_NAMES", '["Test1", "Test2", "Test3"]'))
+# Caminho do arquivo JSON de configuração de aplicativos
+APP_NAMES_FILE = os.getenv("APP_NAMES_FILE", "config/app_names.json")
+APP_NAMES = load_json_file(APP_NAMES_FILE, {"APP_NAMES": []})["APP_NAMES"]
 
 # ////////////////////////////////////////////
 # Configuração de Email:
 # ////////////////////////////////////////////
 
-EMAIL_URI_DATA_DEFAULT = {
-    "HOST": "",
-    "PORT": 587,
-    "USERNAME": "",
-    "EMAIL": "",
-    "PASSWORD": ""
-}
-EMAIL_URI_DATA = load_json_config("EMAIL_URI_DATA", EMAIL_URI_DATA_DEFAULT)
-
+EMAIL_HOST = os.getenv("EMAIL_HOST", 'smtp.gmail.com')
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
+EMAIL = os.getenv("EMAIL", '')
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD", '')
 
 # Avisos sobre configurações críticas
 if DEBUG:
@@ -86,4 +91,4 @@ if DEBUG:
 # Exibir mensagens de aviso
 if _messages:
     for msg in _messages:
-        logger.warning(f'WARNING: {msg}')
+        logger.warning(msg)

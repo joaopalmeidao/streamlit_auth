@@ -3,7 +3,7 @@ __all__ = [
     
     'pagina_gerenciar_permissao',  # Função para gerenciar permissões
     'pagina_gerenciar_usuarios',  # Função para gerenciar usuários
-    'main_page_auth',  # Pagina principal
+    'main_page_gerenciar',  # Pagina principal
     
     'TbUsuarioStreamlit',  # Modelo de usuário
     'TbSessaoStreamlit',  # Modelo de sessão
@@ -13,7 +13,7 @@ __all__ = [
 from .backend.auth import Authenticate
 from .frontend.perms import pagina_gerenciar_permissao
 from .frontend.users import pagina_gerenciar_usuarios
-from .frontend.main_page import main_page_auth
+from .frontend.main_page import main_page_gerenciar
 
 # Modelos de banco de dados
 from .backend.models import (
