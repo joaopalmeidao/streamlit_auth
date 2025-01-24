@@ -19,7 +19,7 @@ setup(
     long_description_content_type="text/markdown",  # Tipo de conteúdo do README
     author="João Pedro Almeida Oliveira",
     author_email="jp080496@gmail.com",
-    url="https://github.com/seu-usuario/streamlit_auth",  # URL do repositório GitHub ou outro
+    url="https://github.com/joaopalmeidao/streamlit_auth",  # URL do repositório GitHub ou outro
     packages=find_packages(),  # Pacotes que você deseja incluir no PyPI
     install_requires=read_requirements(),  # Dependências do seu pacote
     classifiers=[  # Informações sobre o pacote para PyPI
