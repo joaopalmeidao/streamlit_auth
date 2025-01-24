@@ -627,7 +627,8 @@ class Authenticate:
                     else:
                         st.error("As senhas não coincidem.")
         
-        self._request_user_activation(col2)
+        if self.user_activation_request:
+            self._request_user_activation(col2)
     
     def login(self, form_name: str, container: st = st):
         """
