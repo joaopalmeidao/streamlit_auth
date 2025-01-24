@@ -186,8 +186,7 @@ def test_page():
             user_permissions = opcoes_usuario + opcoes_admin
             
         else:
-            user_permissions = Authenticate.get_user_permissions(username)['app_name'].to_list()
-            user_permissions = sorted(list(i for i in set(user_permissions) if i in settings.APP_NAMES))
+            user_permissions = authenticator.get_user_apps_perms(username)
             user_permissions += opcoes_usuario
         
         selected_option = st.sidebar.selectbox(

@@ -1303,6 +1303,12 @@ class Authenticate:
             )
     
     @staticmethod
+    def get_user_apps_perms(username: str):
+        user_permissions = Authenticate.get_user_permissions(username)['app_name'].to_list()
+        user_permissions = sorted(list(i for i in set(user_permissions) if i in settings.APP_NAMES))
+        return user_permissions
+        
+    @staticmethod
     def send_activation_email(username: str, email: str, activation_url: str):
         """
         Envia um e-mail com o link de ativação do usuário.

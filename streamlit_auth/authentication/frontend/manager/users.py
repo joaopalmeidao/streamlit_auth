@@ -14,7 +14,9 @@ def users_manager_page():
     df_usuarios = Authenticate.get_all_users().drop(columns=[
         "password",
         "secret_tfa",
-        "reset_token",
+        "reset_password_token",
+        "reset_tfa_token",
+        "activation_token",
         ])
 
     # Exibir a tabela de usuários existentes
