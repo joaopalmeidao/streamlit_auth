@@ -22,6 +22,10 @@ The Streamlit Auth Library is a robust authentication and user management librar
 
 ![Manage Users](https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/imgs/user_manager.png?raw=True)
 
+### Manage Sessions
+
+![Manage Sessions](https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/imgs/session_manager.png?raw=True)
+
 ### Login Form
 
 ![Login Form](https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/imgs/login_form.png?raw=True)
@@ -37,6 +41,10 @@ The Streamlit Auth Library is a robust authentication and user management librar
 ### Register Form
 
 ![Register Form](https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/imgs/user_register.png?raw=True)
+
+### User Profile
+
+![User Profile](https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/imgs/user_profile.png?raw=True)
 
 ## Instalação
 
@@ -86,6 +94,7 @@ Define the names of the applications for which you manage permissions:
   - Username and password: Uses bcrypt for security.
   - Optional 2FA: Adds an extra layer of security with TOTP.
   - Session management: Tracks and controls logins.
+  - User Activation: Support for activating user accounts via a link sent by email.
 - User and Permission Management
   - Manage users: Add, edit, or delete users.
   - Manage permissions: Control access by application.
@@ -121,9 +130,8 @@ import streamlit as st
 
 from streamlit_auth.authentication import (
     Authenticate,
-    user_manager_page,
+    user_manager_main_page,
     user_profile_page,
-    user_register_page,
 )
 from streamlit_auth.config import settings
 
@@ -158,7 +166,7 @@ def test_page():
     # Basic Messages
     if authentication_status == False:
         st.warning("Please enter your username.")
-        user_register_page()
+        authenticator.user_register_form()
         return
 
     # If already authenticated with 2FA, display the application
@@ -183,7 +191,7 @@ def test_page():
         )
         
         if role == 'admin' and selected_option == "Manage":
-            user_manager_page()
+            user_manager_main_page()
         
         if selected_option == "User Profile":
             user_profile_page(user_data)
@@ -191,13 +199,13 @@ def test_page():
 
 ### Gerenciamento
 
-Use the user_manager_page function to display the user permissions management screen. Here is how to implement it:
+Use the user_manager_main_page function to display the user permissions management screen. Here is how to implement it:
 
 ```python
-from streamlit_auth.authentication import user_manager_page
+from streamlit_auth.authentication import user_manager_main_page
 
 # Screen for managing permissions and users
-user_manager_page()
+user_manager_main_page()
 ```
 
 Run the server with the created file:

@@ -7,7 +7,7 @@ from streamlit_auth.authentication.backend.auth import (
 )
 
 
-def user_manager_page():
+def users_manager_page():
     st.title("🔑 Gerenciar Usuários")
 
     # Obter lista de usuários (sem a senha)
@@ -99,7 +99,7 @@ def user_manager_page():
             if st.form_submit_button("Adicionar Usuário"):
                 if password == confirmar_senha:
                     try:
-                        Authenticate.insert_user(nome, username, password, email, role)
+                        Authenticate.insert_user(nome, username, password, email, role, True)
                         st.success("Usuário adicionado com sucesso!")
                         st.rerun()
                     except Exception as e:

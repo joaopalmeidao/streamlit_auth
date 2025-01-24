@@ -41,8 +41,14 @@ class TbUsuarioStreamlit(Base):
     
     secret_tfa = Column(String(255))
     
-    reset_token = Column(String(255))
-    reset_token_expiry = Column(DateTime)
+    reset_password_token = Column(String(255))
+    reset_password_token_expiry = Column(DateTime)
+    
+    reset_tfa_token = Column(String(255))
+    reset_tfa_token_expiry = Column(DateTime)
+    
+    activation_token = Column(String(255))
+    activation_token_expiry = Column(DateTime)
 
     # Relacionamento com TbSessaoStreamlit
     sessions = relationship('TbSessaoStreamlit', back_populates='user', cascade="all, delete-orphan")

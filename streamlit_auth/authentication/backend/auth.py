@@ -17,6 +17,10 @@ from sqlalchemy import text
 from streamlit_auth.core.enviar_email import SendMail
 from streamlit_auth.core.database.manager import default_engine as engine
 from streamlit_auth.config import settings
+from .exceptions import (
+    ValidationError,
+    display_validation_errors,
+)
 from .models import (
     Base,
     TbUsuarioStreamlit,
@@ -52,6 +56,8 @@ class Authenticate:
         'logout': False,
     }
 
+    activation_token_expiry = 25
+    
     def __init__(self, 
         secret_key: str,
         session_expiry_days: int = 7,
@@ -60,7 +66,8 @@ class Authenticate:
         auth_reset_views = False,
         site_name = 'http://localhost:8501/',
         
-        max_sessions=None
+        max_sessions=None,
+        user_activation_request=True,
         
         ):
         self.cookie_name = cookie_name
@@ -73,6 +80,7 @@ class Authenticate:
         self.cookie_manager = stx.CookieManager()
         
         self.max_sessions = max_sessions
+        self.user_activation_request = user_activation_request
 
         # Inicializa o session_state caso não exista
         self._initialize_session_state()
@@ -81,8 +89,8 @@ class Authenticate:
         self._check_and_restore_session_from_cookie()
 
         if self.auth_reset_views:
-            if not settings.EMAIL or settings.EMAIL_PASSWORD:
-                logger.warning("Configurações de email estão incompletas. Funcionalidades de email podem não funcionar corretamente.")
+            if not settings.EMAIL or not settings.EMAIL_PASSWORD:
+                logger.warning("SETTINGS WARNING: Configurações de email estão incompletas. Funcionalidades de email podem não funcionar corretamente.")
 
     def _initialize_session_state(self):
         # Definição inicial das variáveis de sessão
@@ -392,7 +400,7 @@ class Authenticate:
 
                         if result:
                             email = result[0]
-                            token, _ = Authenticate.generate_reset_token(username)
+                            token, _ = Authenticate.generate_reset_password_token(username)
                             reset_url = f"{self.site_name}?password_token={token}"
                             Authenticate.send_reset_email(username, email, reset_url, "Senha")
                         st.success("Um link de redefinição de senha foi enviado para o seu e-mail.")
@@ -416,7 +424,7 @@ class Authenticate:
             return
 
         username, expiry = result
-        if datetime.utcnow() > expiry:
+        if datetime.utcnow() > pd.to_datetime(expiry):
             st.error("Token expirado.")
             st.query_params.clear()
             return
@@ -467,7 +475,7 @@ class Authenticate:
 
                             if result:
                                 email = result[0]
-                                token, _ = Authenticate.generate_reset_token(username)
+                                token, _ = Authenticate.generate_reset_tfa_token(username)
                                 reset_url = f"{self.site_name}?2fa_token={token}"
                                 Authenticate.send_reset_email(username, email, reset_url, "2FA")
                             st.success("Um link de redefinição de 2FA foi enviado para o seu e-mail.")
@@ -480,9 +488,9 @@ class Authenticate:
 
             with engine.begin() as con:
                 result = con.execute(text('''
-                    SELECT username, reset_token_expiry
+                    SELECT username, reset_tfa_token_expiry
                     FROM TbUsuarioStreamlit
-                    WHERE reset_token = :token
+                    WHERE reset_tfa_token_expiry = :token
                 '''), {'token': token}).fetchone()
 
             if not result:
@@ -492,7 +500,7 @@ class Authenticate:
 
             st.title("Redefinir 2FA")
             username, expiry = result
-            if datetime.utcnow() > expiry:
+            if datetime.utcnow() > pd.to_datetime(expiry):
                 st.error("Token expirado.")
                 st.query_params.clear()
                 return
@@ -504,8 +512,8 @@ class Authenticate:
                     con.execute(text('''
                         UPDATE TbUsuarioStreamlit
                         SET secret_tfa = NULL,
-                            reset_token = NULL,
-                            reset_token_expiry = NULL
+                            reset_tfa_token = NULL,
+                            reset_tfa_token_expiry = NULL
                         WHERE username = :username
                     '''), {'username': username})
 
@@ -514,6 +522,112 @@ class Authenticate:
                 st.rerun()
             else:
                 st.stop()
+    
+    def _activate_user(self, container=st):
+        """
+        Processa o token de ativação e ativa o usuário.
+        """
+        token = st.query_params.get('activation_token')
+        if not token:
+            return
+        
+        with engine.begin() as con:
+            result = con.execute(text('''
+                SELECT username, activation_token_expiry
+                FROM TbUsuarioStreamlit
+                WHERE activation_token = :token
+            '''), {'token': token}).fetchone()
+        
+        st.title("Ativar Conta")
+        if not result:
+            st.error("Token inválido.")
+            st.query_params.clear()
+            return
+
+        username, expiry = result
+        if datetime.utcnow() > pd.to_datetime(expiry):
+            st.error("Token expirado.")
+            st.query_params.clear()
+            return
+
+        container.success(f"Bem-vindo, {username}. Sua conta foi ativada com sucesso!")
+        
+        with engine.begin() as con:
+            con.execute(text('''
+                UPDATE TbUsuarioStreamlit
+                SET active = 1,
+                    activation_token = NULL,
+                    activation_token_expiry = NULL
+                WHERE username = :username
+            '''), {'username': username})
+        
+        st.query_params.clear()
+    
+    def _request_user_activation(self, container=st):
+        """
+        Solicita a ativação do usuário enviando um link por e-mail.
+        """
+        with container:
+            with st.expander('📩 Solicitar Ativação de Conta'):
+                form = st.form('activation_request')
+                username = form.text_input("Username")
+                if form.form_submit_button("Enviar Link de Ativação"):
+                    if not username:
+                        st.error('Preencha o username.')
+                        return
+                    
+                    with st.spinner('Enviando...'):
+                        with engine.begin() as con:
+                            result = con.execute(text('''
+                                SELECT email
+                                FROM TbUsuarioStreamlit
+                                WHERE username = :username
+                            '''), {'username': username}).fetchone()
+                        
+                        if result:
+                            email = result[0]
+                            token, expiry = self.generate_activation_token(username)
+                            activation_url = f"{self.site_name}?activation_token={token}"
+                            self.send_activation_email(username, email, activation_url)
+                            st.success("Um link de ativação foi enviado para o seu e-mail.")
+    
+    def user_register_form(self):
+        col1, col2 = st.columns([2, 1])
+        
+        with col1.expander('📝 Criar Conta'):
+            # Form para cada ação
+            with st.form(key="user_register_form"):
+                nome = st.text_input("Nome Completo:")
+                username = st.text_input("Nome de Usuário:")
+                email = st.text_input("Email:")
+                password = st.text_input("Senha:", type="password")
+                confirmar_senha = st.text_input("Confirmar Senha:", type="password")
+                if st.form_submit_button("Criar Conta"):
+                    if password == confirmar_senha:
+                        with st.spinner('Criando usuário...'):
+                            try:
+                                active = False if self.user_activation_request else True
+                                Authenticate.insert_user(
+                                    nome, 
+                                    username, 
+                                    password, 
+                                    email, 
+                                    'user',
+                                    active,
+                                    )
+                                message = "Usuário adicionado com sucesso!"
+                                if not active:
+                                    token, expiry = self.generate_activation_token(username)
+                                    activation_url = f"{self.site_name}?activation_token={token}"
+                                    self.send_activation_email(username, email, activation_url)
+                                    message = f"Foi enviado um email de ativação para {email}."
+                                st.success(message)
+                            except Exception as e:
+                                display_validation_errors(e)
+                    else:
+                        st.error("As senhas não coincidem.")
+        
+        self._request_user_activation(col2)
     
     def login(self, form_name: str, container: st = st):
         """
@@ -524,6 +638,8 @@ class Authenticate:
         4. Se 2FA verificado, gera sessão e salva no cookie.
         """
 
+        self._activate_user()
+        
         if self.auth_reset_views:
             self._reset_password()
             
@@ -616,6 +732,48 @@ class Authenticate:
         return hashlib.sha256(''.join(data).encode()).hexdigest()
     
     @staticmethod
+    def user_validation(username: str, password: str, email: str) -> dict:
+        """
+        Valida o nome de usuário, a força da senha e o formato do email.
+        
+        Args:
+            username (str): O nome de usuário a ser validado.
+            password (str): A senha a ser validada.
+            email (str): O email a ser validado.
+        
+        Returns:
+            dict: Um dicionário com os resultados da validação.
+        """
+        import re
+        
+        errors = []
+        
+        # Validação do nome de usuário
+        if not re.match(r'^[a-zA-Z0-9_-]{3,30}$', username):
+            errors.append("O nome de usuário deve ter entre 3 e 30 caracteres e pode conter apenas letras, números, '_' ou '-'.")
+        
+        # Validação da força da senha
+        if len(password) < 8:
+            errors.append("A senha deve ter pelo menos 8 caracteres.")
+        if not any(char.isupper() for char in password):
+            errors.append("A senha deve conter pelo menos uma letra maiúscula.")
+        if not any(char.islower() for char in password):
+            errors.append("A senha deve conter pelo menos uma letra minúscula.")
+        if not any(char.isdigit() for char in password):
+            errors.append("A senha deve conter pelo menos um número.")
+        if not any(char in "!@#$%^&*()-_=+[]{}|;:'\",.<>?/~`" for char in password):
+            errors.append("A senha deve conter pelo menos um caractere especial (!@#$%^&*()-_=+[]{}|;:'\",.<>?/~`).")
+        
+        # Validação do email
+        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+            errors.append("O email informado é inválido. Certifique-se de usar um formato válido (ex: exemplo@dominio.com).")
+        
+        # Retorna os erros ou uma mensagem de sucesso
+        if errors:
+            return {"valid": False, "errors": errors}
+        return {"valid": True, "message": "Nome de usuário, senha e email são válidos."}
+    
+    @staticmethod
     def generate_session_id() -> str:
         """Gera um session_id único e seguro."""
         return str(uuid.uuid4())
@@ -632,6 +790,31 @@ class Authenticate:
         except:
             return
 
+    @staticmethod
+    def generate_activation_token(username: str, activation_token_expiry=24):
+        """
+        Gera um token de ativação e o armazena no banco.
+        
+        Args:
+            username (str): Nome de usuário.
+            activation_token_expiry (int): Expiração do token em horas.
+        
+        Returns:
+            tuple: Token e data de expiração.
+        """
+        token = secrets.token_urlsafe(64)
+        expiry = datetime.utcnow() + timedelta(hours=activation_token_expiry)
+
+        with engine.begin() as con:
+            con.execute(text('''
+                UPDATE TbUsuarioStreamlit
+                SET activation_token = :token,
+                    activation_token_expiry = :expiry
+                WHERE username = :username
+            '''), {'token': token, 'expiry': expiry, 'username': username})
+        
+        return token, expiry
+    
     @staticmethod
     def select_usuario_by_username(username: str):
         # Ajuste a query conforme a necessidade
@@ -688,32 +871,44 @@ class Authenticate:
         password,
         email,
         role,
-        ):  
+        active=True,
+        ):
+        validate = Authenticate.user_validation(
+            username=username,
+            password=password,
+            email=email
+        )
+        if not validate['valid']:
+            raise ValidationError(validate['errors'])
+        
         df_usuarios = Authenticate.get_all_users()
         if df_usuarios[df_usuarios['username'] == username].empty:
             hashed_pass = Authenticate.hash(password)
-            with engine.begin() as con:
-                con.execute(text(f'''
-                    INSERT INTO TbUsuarioStreamlit
-                    (name, email, username, password, change_date, role, active)
-                    VALUES (
-                        :name,
-                        :email,
-                        :username,
-                        :password,
-                        :change_date,
-                        :role,
-                        :active
-                    )
-                '''),[{
-                    'name': name.strip(),
-                    'email': email.strip(),
-                    'username': username.strip(),
-                    'password': hashed_pass,
-                    'change_date': datetime.now(),
-                    'active': 1,
-                    'role': role
-                }])
+            try:
+                with engine.begin() as con:
+                    con.execute(text(f'''
+                        INSERT INTO TbUsuarioStreamlit
+                        (name, email, username, password, change_date, role, active)
+                        VALUES (
+                            :name,
+                            :email,
+                            :username,
+                            :password,
+                            :change_date,
+                            :role,
+                            :active
+                        )
+                    '''),[{
+                        'name': name.strip(),
+                        'email': email.strip(),
+                        'username': username.strip(),
+                        'password': hashed_pass,
+                        'change_date': datetime.now(),
+                        'active': active,
+                        'role': role
+                    }])
+            except Exception as e:
+                logger.error(e, exc_info=True)
         else:
             raise Exception('Já existe um usuário com esse username.')
 
@@ -877,7 +1072,7 @@ class Authenticate:
             con.execute(text(query), params)
     
     @staticmethod
-    def generate_reset_token(username, reset_token_expiry=1):
+    def generate_reset_tfa_token(username, reset_token_expiry=1):
         '''reset_token_expiry horas'''
         token = secrets.token_urlsafe(64)
         expiry = datetime.utcnow() + timedelta(hours=reset_token_expiry)
@@ -885,8 +1080,27 @@ class Authenticate:
         with engine.begin() as con:
             con.execute(text('''
                 UPDATE TbUsuarioStreamlit
-                SET reset_token = :token,
-                    reset_token_expiry = :expiry
+                SET reset_tfa_token = :token,
+                    reset_tfa_token_expiry = :expiry
+                WHERE username = :username
+            '''), {
+                'token': token,
+                'expiry': expiry,
+                'username': username
+            })
+        return token, expiry
+    
+    @staticmethod
+    def generate_reset_password_token(username, reset_token_expiry=1):
+        '''reset_token_expiry horas'''
+        token = secrets.token_urlsafe(64)
+        expiry = datetime.utcnow() + timedelta(hours=reset_token_expiry)
+
+        with engine.begin() as con:
+            con.execute(text('''
+                UPDATE TbUsuarioStreamlit
+                SET reset_password_token = :token,
+                    reset_password_token_expiry = :expiry
                 WHERE username = :username
             '''), {
                 'token': token,
@@ -1068,3 +1282,29 @@ class Authenticate:
             mailer.enviar_email(
                 message,
             )
+    
+    @staticmethod
+    def send_activation_email(username: str, email: str, activation_url: str):
+        """
+        Envia um e-mail com o link de ativação do usuário.
+        
+        Args:
+            username (str): Nome de usuário.
+            email (str): E-mail do usuário.
+            activation_url (str): URL com o token de ativação.
+        """
+        with SendMail() as mailer:
+            mailer.subtype = 'plain'
+            mailer.assunto = 'Ativação de Conta'
+            mailer.destinatarios = [email]
+            message = f"""
+            Olá {username},
+
+            Bem-vindo! Para ativar sua conta, clique no link abaixo:
+
+            {activation_url}
+
+            Este link é válido por 24 horas. Se você não solicitou este e-mail, ignore-o.
+
+            """
+            mailer.enviar_email(message)

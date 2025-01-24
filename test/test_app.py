@@ -3,9 +3,8 @@ import logging
 
 from streamlit_auth.authentication import (
     Authenticate,
-    user_manager_page,
+    user_manager_main_page,
     user_profile_page,
-    user_register_page,
 )
 from streamlit_auth.config import settings
 
@@ -26,6 +25,7 @@ def test_page():
         require_2fa=False,
         auth_reset_views=True,
         site_name='http://localhost:8501/',
+        user_activation_request=True,
     )
     
     user_data = authenticator.login("Login")
@@ -46,7 +46,7 @@ def test_page():
     # Mensagens básicas
     if authentication_status == False:
         st.warning("Por favor, insira seu nome de usuário.")
-        user_register_page()
+        authenticator.user_register_form()
         return
 
     # Se já autenticado com 2FA OK, mostra aplicação
@@ -71,7 +71,7 @@ def test_page():
             )
         
         if role == 'admin' and selected_option == "Gerenciar":
-                user_manager_page()
+            user_manager_main_page()
         
         if selected_option == "Perfil de Usuário":
             user_profile_page(user_data)
