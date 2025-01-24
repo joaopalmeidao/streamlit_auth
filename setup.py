@@ -8,17 +8,17 @@ def read_requirements():
 
 def read_long_description():
     # Carrega o README principal
+    with open("README.md", encoding="utf-8") as f:
+        readme_content = f.read()
+        
     with open("doc/readme/en.md", encoding="utf-8") as f:
         en_content = f.read()
     
-    # Inclui link para o README em português
-    pt_link = "\n\n## 🌎 Other Languages\n\n- [Português](https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/readme/pt-BR.md)\n"
-    
-    return en_content + pt_link
+    return readme_content + en_content
 
 setup(
     name="streamlit_auth_mfa",
-    version="4.0.2",
+    version="4.0.3",
     description="A robust library for authentication with Streamlit, featuring 2FA, permissions, and session management.",
     long_description=read_long_description(), 
     long_description_content_type="text/markdown",
