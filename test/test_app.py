@@ -22,7 +22,7 @@ def test_page():
     authenticator = Authenticate(
         secret_key='123',
         session_expiry_days=7,
-        require_2fa=False,
+        require_2fa=True,
         auth_reset_views=True,
         site_name='http://localhost:8501/',
         user_activation_request=True,

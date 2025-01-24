@@ -18,8 +18,8 @@ def read_long_description():
 
 setup(
     name="streamlit_auth_mfa",
-    version="4.0.0",
-    description="Uma biblioteca para autenticação segura com Streamlit e 2FA.",
+    version="4.0.1",
+    description="A robust library for authentication with Streamlit, featuring 2FA, permissions, and session management.",
     long_description=read_long_description(), 
     long_description_content_type="text/markdown",
     author="João Pedro Almeida Oliveira",
