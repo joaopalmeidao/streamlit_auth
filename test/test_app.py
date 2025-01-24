@@ -65,14 +65,13 @@ def test_page():
             user_permissions = sorted(list(i for i in set(user_permissions) if i in settings.APP_NAMES))
             user_permissions += opcoes_usuario
         
-        dd_opcoes_page = st.sidebar.selectbox(
+        selected_option = st.sidebar.selectbox(
             "Selecione uma opção:",
             user_permissions,
             )
         
-        if role == 'admin':
-            if dd_opcoes_page == "Gerenciar":
+        if role == 'admin' and selected_option == "Gerenciar":
                 user_manager_page()
         
-        if dd_opcoes_page == "Perfil de Usuário":
+        if selected_option == "Perfil de Usuário":
             user_profile_page(user_data)

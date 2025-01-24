@@ -6,7 +6,7 @@ The Streamlit Auth Library is a robust authentication and user management librar
 
 ...
 
-[Back to README](../README.md)
+[Back to README](../../README.md)
 
 ## PyPI
 
@@ -16,11 +16,11 @@ The Streamlit Auth Library is a robust authentication and user management librar
 
 ### Manage Permissions
 
-![Manage Permissions](https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/imgs/gerenciar_perms.png?raw=True)
+![Manage Permissions](https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/imgs/manage_perms.png?raw=True)
 
 ### Manage Users
 
-![Manage Users](https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/imgs/gerenciar_usuarios.png?raw=True)
+![Manage Users](https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/imgs/user_manager.png?raw=True)
 
 ### Login Form
 
@@ -36,7 +36,7 @@ The Streamlit Auth Library is a robust authentication and user management librar
 
 ### Register Form
 
-![Register Forms](https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/imgs/register_forms.png?raw=True)
+![Register Form](https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/imgs/user_register.png?raw=True)
 
 ## Instalação
 

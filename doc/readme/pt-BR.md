@@ -6,7 +6,7 @@ A Streamlit Auth Library é uma biblioteca que adiciona autenticação robusta e
 
 ...
 
-[Voltar ao README](../README.md)
+[Voltar ao README](../../README.md)
 
 ## PyPI
 
@@ -16,11 +16,11 @@ A Streamlit Auth Library é uma biblioteca que adiciona autenticação robusta e
 
 ### Gerenciar Permissões
 
-![Gerenciar Permissões](https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/imgs/gerenciar_perms.png?raw=True)
+![Gerenciar Permissões](https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/imgs/manage_perms.png?raw=True)
 
 ### Gerenciar Usuários
 
-![Gerenciar Usuários](https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/imgs/gerenciar_usuarios.png?raw=True)
+![Gerenciar Usuários](https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/imgs/user_manager.png?raw=True)
 
 ### Login Form
 
@@ -36,7 +36,7 @@ A Streamlit Auth Library é uma biblioteca que adiciona autenticação robusta e
 
 ### Register Form
 
-![Register Forms](https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/imgs/register_forms.png?raw=True)
+![Register Form](https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/imgs/user_register.png?raw=True)
 
 ## Instalação
 
@@ -127,9 +127,7 @@ from streamlit_auth.authentication import (
 )
 from streamlit_auth.config import settings
 
-
 TITLE = "Strealit Authenticate"
-
 
 def test_page():
     st.set_page_config(page_title=TITLE, layout='wide')
@@ -138,7 +136,7 @@ def test_page():
     authenticator = Authenticate(
         secret_key='123',
         session_expiry_days=7,
-        require_2fa=True,
+        require_2fa=False,
         auth_reset_views=True,
         site_name='http://localhost:8501/',
     )
@@ -180,16 +178,15 @@ def test_page():
             user_permissions = sorted(list(i for i in set(user_permissions) if i in settings.APP_NAMES))
             user_permissions += opcoes_usuario
         
-        dd_opcoes_page = st.sidebar.selectbox(
+        selected_option = st.sidebar.selectbox(
             "Selecione uma opção:",
             user_permissions,
             )
         
-        if role == 'admin':
-            if dd_opcoes_page == "Gerenciar":
+        if role == 'admin' and selected_option == "Gerenciar":
                 user_manager_page()
         
-        if dd_opcoes_page == "Perfil de Usuário":
+        if selected_option == "Perfil de Usuário":
             user_profile_page(user_data)
 ```
 
