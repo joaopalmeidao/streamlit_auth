@@ -1,5 +1,7 @@
 # Streamlit Auth
 
+[streamlit-auth-mfa](https://pypi.org/project/streamlit-auth-mfa/)
+
 Este é um pacote Python para autenticação segura com Streamlit e 2FA. Ele oferece:
 
 - Autenticação via username e senha com bcrypt.
