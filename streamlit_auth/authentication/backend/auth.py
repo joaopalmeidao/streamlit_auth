@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from math import e
 import pandas as pd
 import streamlit as st
 import bcrypt
@@ -13,7 +12,6 @@ from time import sleep
 import secrets
 import hashlib
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
 
 from sqlalchemy import text
 from streamlit_auth.core.enviar_email import SendMail
@@ -91,52 +89,13 @@ class Authenticate:
         for k, v in self.defaults.items():
             if k not in st.session_state:
                 st.session_state[k] = v
-
-    def create_admin_if_not_exists():
-        # Criar uma sessão para interagir com o banco
-        session = Session(engine)
-
-        try:
-            # Verificar se já existe algum usuário no banco
-            user_count = session.query(TbUsuarioStreamlit).count()
-            if user_count == 0:
-                # Se não houver nenhum usuário, cria um usuário admin
-                logger.info("Nenhum usuário encontrado. Criando o usuário admin...")
-                
-                # Criar um novo usuário admin com a senha "admin"
-                admin_user = TbUsuarioStreamlit(
-                    name="Admin",
-                    email="admin@domain.com",
-                    username="admin",
-                    password=Authenticate.hash("admin"),  # Lembre-se de hashear a senha!
-                    role="admin",
-                    active=True,
-                    change_date=datetime.utcnow()
-                )
-                
-                session.add(admin_user)
-                session.commit()
-
-                # Log de sucesso
-                logger.info("Usuário admin criado com sucesso com a senha 'admin'.")
-            else:
-                logger.info("Usuários já existem no banco de dados. Nenhuma ação necessária.")
-        
-        except Exception as e:
-            logger.error(f"Erro ao tentar verificar ou criar o usuário admin: {e}")
-        finally:
-            # Fechar a sessão
-            session.close()
-    
-    def hash(password):
-        return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     
     def _check_and_restore_session_from_cookie(self):
         """Lê o cookie session_id, busca a sessão no DB e restaura o estado do usuário se válido."""
         session_id = self.cookie_manager.get(self.cookie_name)
         
         if session_id:
-            session_data = Authenticate._get_session_by_id(session_id)
+            session_data = Authenticate.get_session_by_id(session_id)
 
             if session_data:
                 if pd.to_datetime(session_data['expires_at']) > datetime.utcnow():
@@ -144,7 +103,7 @@ class Authenticate:
                     authenticated_2fa = session_data['authenticated_2fa']
 
                     # Busca dados do usuário no DB
-                    df_user = self._get_user_by_id(user_id)
+                    df_user = self.get_user_by_id(user_id)
 
                     if not df_user.empty:
                         # Atualiza session_state apenas se não estiver já autenticado
@@ -166,94 +125,22 @@ class Authenticate:
                                 st.session_state['authentication_status'] = True
                                 st.session_state['logout'] = False
 
-    def _get_session_by_id(session_id: str):
-        """Recupera dados da sessão do banco de dados."""
-        try:
-            df_session = pd.read_sql(
-                text('''
-                    SELECT *
-                    FROM TbSessaoStreamlit
-                    WHERE session_id = :session_id
-                '''),
-                engine, params={'session_id': session_id}
-            )
-            if not df_session.empty:
-                session = df_session.iloc[0].to_dict()
-
-                # Gerar o fingerprint atual e comparar com o salvo
-                current_fingerprint = Authenticate.generate_device_fingerprint(st.context.headers)
-
-                if session['fingerprint'] != current_fingerprint:
-                    logger.warning("Fingerprint não corresponde. Sessão potencialmente comprometida.")
-                    return None  # Fingerprint não corresponde
-
-                return {
-                    'session_id': session['session_id'],
-                    'user_id': session['user_id'],
-                    'authenticated_2fa': session['authenticated_2fa'],
-                    'created_at': session['created_at'],
-                    'expires_at': session['expires_at']
-                }
-            else:
-                return None
-        except Exception as e:
-            logger.error(f"Erro ao recuperar sessão: {e}")
-            return None
-
-    def _generate_session_id(self) -> str:
-        """Gera um session_id único e seguro."""
-        return str(uuid.uuid4())
-
-    def generate_device_fingerprint(headers):
-        
-        """Gera um fingerprint baseado no User-Agent e no endereço IP."""
-        data = (
-            headers.get('User-Agent', ''),
-            headers.get('Accept-Language', ''),
-            headers.get('Origin', ''),
-            headers.get('Host', ''),
-            headers.get('Sec-Gpc', ''),
-            headers.get('Accept-Encoding', ''),
-            headers.get('Accept', ''),
-            headers.get('X-Real-Ip', ''),
-        )
-        
-        return hashlib.sha256(''.join(data).encode()).hexdigest()
-    
-    def _get_active_sessions(self, user_id: int):
-        """Retorna as sessões ativas de um usuário."""
-        try:
-            df_sessions = pd.read_sql(
-                text('''
-                    SELECT *
-                    FROM TbSessaoStreamlit
-                    WHERE user_id = :user_id
-                    AND expires_at > :current_time
-                    ORDER BY created_at ASC
-                '''),
-                engine, params={'user_id': user_id, 'current_time': datetime.utcnow()}
-            )
-            return df_sessions
-        except Exception as e:
-            logger.error(f"Erro ao obter sessões ativas: {e}")
-            return pd.DataFrame()
-    
     def _create_session(self, user_id: int, authenticated_2fa: bool) -> str:
         """Cria uma nova sessão no banco de dados e retorna o session_id."""
         if self.max_sessions:
-            active_sessions = self._get_active_sessions(user_id)
+            active_sessions = self.get_active_sessions(user_id)
             if len(active_sessions) >= self.max_sessions:
                 # Revoga a sessão mais antiga
                 oldest_session = active_sessions.iloc[0]
-                Authenticate.revoke_session(session_id=oldest_session['session_id'])
+                self.revoke_session(session_id=oldest_session['session_id'])
                 logger.debug(f"Limite de sessões atingido para o usuário {user_id}. Sessão antiga revogada.")
         
-        session_id = self._generate_session_id()
+        session_id = self.generate_session_id()
         created_at = datetime.utcnow()
         expires_at = created_at + timedelta(days=self.session_expiry_days)
 
         # Gerar fingerprint do dispositivo
-        fingerprint = Authenticate.generate_device_fingerprint(st.context.headers)
+        fingerprint = self.generate_device_fingerprint(st.context.headers)
 
         try:
             with engine.begin() as con:
@@ -340,69 +227,11 @@ class Authenticate:
         st.session_state['logout'] = True
         st.session_state['authentication_status'] = False
         st.session_state['authenticated_2fa'] = False
-        
-    def login(self, form_name: str, container: st = st):
-        """
-        Realiza o fluxo completo de login:
-        1. Se não autenticado: pede username e senha.
-        2. Verifica credenciais. Se ok, verifica se necessita 2FA.
-        3. Se 2FA não configurado, configura. Se configurado, pede código.
-        4. Se 2FA verificado, gera sessão e salva no cookie.
-        """
-
-        if self.auth_reset_views:
-            self._reset_password()
-            
-            if self.require_2fa:
-                self._reset_2fa()
-        
-        col1, col2 = st.columns(2)
-        
-        if st.session_state['authentication_status']:
-            if self.require_2fa:
-                if st.session_state['authenticated_2fa']:
-                    # Já autenticado completamente
-                    return self._get_user_data()
-            else:
-                # 2FA não é requerido
-                return self._get_user_data()
-
-        # Passo 1: Se não autenticado (username/senha)
-        if not st.session_state['authentication_status']:
-            if self.auth_reset_views:
-                self._request_password_reset(col1)
-
-            login_form = container.form('Login')
-            login_form.subheader(form_name)
-            
-            username = login_form.text_input('Username', key='login_username_input').lower().strip()
-            password = login_form.text_input('Password', type='password', key='login_password_input')
-            
-            if login_form.form_submit_button('Login'):
-                if not username:
-                    container.error("Preencha o campo Username.")
-
-                with container.spinner('Carregando...'):
-                    if self._check_credentials(username, password):
-                        
-                        self._component_create_session()
-                        logger.debug(f"Usuário {username} autenticado com sucesso.")
-                    else:
-                        container.error('Usuário ou senha incorretos.')
-
-        # # # Passo 2: Usuário e senha ok, mas falta 2FA
-        if self.require_2fa:
-            if self.auth_reset_views:
-                self._request_2fa_reset(col2)
-            
-            self._component_require2fa()
-
-        return self._get_user_data()
     
     def _component_require2fa(self):
         if st.session_state['authentication_status'] and not st.session_state['authenticated_2fa']:
             user_id = st.session_state['user_id']
-            df_user = self._get_user_by_id(user_id)
+            df_user = self.get_user_by_id(user_id)
             secret_db = df_user['secret_tfa'][0]
 
             if not secret_db:
@@ -438,40 +267,16 @@ class Authenticate:
 
     def logout(self, button_name: str, container = st.sidebar, key: str = None, session_keys_to_delete=[]):
         if container.button(button_name, key=key):
-            session_id = st.session_state['session_id']
-            self._perform_logout(session_id)
-            
             for i in session_keys_to_delete:
                 if i in st.session_state.keys():
                     st.session_state[i] = None
+                    
+            session_id = st.session_state['session_id']
+            self._perform_logout(session_id)
 
     def _perform_logout(self, session_id: str):
         self._clear_session_and_cookie(session_id)
-
-    def _check_credentials(self, username: str, password: str) -> bool:
-        df_user = Authenticate._select_usuario(username)
-        if df_user.empty:
-            self._clear_session_and_cookie(None)
-            return False
-
-        if not self._check_password(password, df_user['password'][0]):
-            self._clear_session_and_cookie(None)
-            return False
-
-        # Credenciais corretas
-        st.session_state['user_id'] = df_user['id'][0]
-        st.session_state['username'] = df_user['username'][0]
-        st.session_state['name'] = str(df_user['name'][0]).title()
-        st.session_state['role'] = df_user['role'][0]
-        st.session_state['email'] = df_user['email'][0]
-        st.session_state['authentication_status'] = True
-
-        if self.require_2fa:
-            st.session_state['authenticated_2fa'] = False
-        else:
-            st.session_state['authenticated_2fa'] = True
-
-        return True
+        st.rerun()
 
     def _configurar_2fa(self, df_user: pd.DataFrame, container=st) -> bool:
         username = df_user['username'][0]
@@ -568,262 +373,6 @@ class Authenticate:
             'authenticated_2fa': st.session_state['authenticated_2fa']
         }
     
-    def _check_password(self, password: str, hashed_pw: str) -> bool:
-        try:
-            resultado = bcrypt.checkpw(password.encode(), hashed_pw.encode())
-            return resultado
-        except:
-            return
-
-    def _select_usuario(username: str):
-        # Ajuste a query conforme a necessidade
-        return pd.read_sql(
-            text('''
-                SELECT *
-                FROM TbUsuarioStreamlit
-                WHERE username = :username 
-                AND active = 1
-                ORDER BY id DESC
-            '''),
-            engine, params={'username': username}
-        ).head(1)
-        
-    def _get_user_by_id(self, user_id: int):
-        if user_id:
-            return pd.read_sql(
-                text('''
-                    SELECT *
-                    FROM TbUsuarioStreamlit
-                    WHERE id = :user_id
-                    AND active = 1
-                    ORDER by id DESC
-                '''),
-                engine, params={'user_id': int(user_id)}
-            ).head(1)
-        else:
-            return pd.DataFrame()
-
-    def select_all_users():
-        with engine.begin() as con:
-            df = pd.read_sql(text(f'''
-                SELECT * FROM TbUsuarioStreamlit 
-                ORDER by id DESC
-                '''), con)
-        return df
-    
-    def select_active_users():
-        with engine.begin() as con:
-            df = pd.read_sql(text(f'''
-                SELECT * FROM dbo.TbUsuarioStreamlit 
-                WHERE active = 1
-                ORDER by id DESC
-                '''), con)
-        return df
-        
-    def insert_user(
-        name, 
-        username,
-        password,
-        email,
-        role,
-        ):  
-        df_usuarios = Authenticate.select_all_users()
-        if df_usuarios[df_usuarios['username'] == username].empty:
-            hashed_pass = Authenticate.hash(password)
-            with engine.begin() as con:
-                con.execute(text(f'''
-                    INSERT INTO TbUsuarioStreamlit
-                    (name, email, username, password, change_date, role, active)
-                    VALUES (
-                        :name,
-                        :email,
-                        :username,
-                        :password,
-                        :change_date,
-                        :role,
-                        :active
-                    )
-                '''),[{
-                    'name': name.strip(),
-                    'email': email.strip(),
-                    'username': username.strip(),
-                    'password': hashed_pass,
-                    'change_date': datetime.now(),
-                    'active': 1,
-                    'role': role
-                }])
-        else:
-            raise Exception('Já existe um usuário com esse username.')
-
-    def update_dados(username, new_username=None, new_email=None, new_role=None, new_name=None):  
-        df_usuarios = Authenticate.select_all_users()
-        df_usuario = df_usuarios[df_usuarios['username'] == username].copy()
-        if new_username:
-            df_new_usuario = df_usuarios[df_usuarios['username'] == new_username.strip()].copy()
-            if not df_usuario.empty:
-                if not df_new_usuario.empty and new_username.strip() != username:
-                    raise Exception('Já existe um usuário com esse username.')
-            else:
-                raise Exception('Não existe usuário com esse username.')
-                
-        name = df_usuario['name'].values[0]
-        email = df_usuario['email'].values[0]
-        role = df_usuario['role'].values[0]
-        
-        if not new_username:
-            new_username = username
-        if not new_name:
-            new_name = name
-        if not new_email:
-            new_email = email
-        if not new_role:
-            new_role = role
-        
-        with engine.begin() as con:
-            con.execute(text(f'''
-                UPDATE TbUsuarioStreamlit
-                SET
-                    username = :username,
-                    email = :email,
-                    role = :role,
-                    name = :name,
-                    change_date = :change_date
-                where username = :username_old
-            '''),[{
-                'username': new_username.strip(),
-                'email': new_email.strip(),
-                'role': new_role.strip(),
-                'name': new_name.strip(),
-                'change_date': datetime.now(),
-                'username_old': username
-            }])
-        
-    def update_senha(username, new_password):  
-        df_usuarios = Authenticate.select_all_users()
-        df_usuario = df_usuarios[df_usuarios['username'] == username].copy()
-        if not df_usuario.empty:
-            hashed_pass = Authenticate.hash(new_password)
-            with engine.begin() as con:
-                con.execute(text(f'''
-                    UPDATE TbUsuarioStreamlit
-                    SET
-                        password = :password,
-                        change_date = :change_date
-                    WHERE username = :username
-                '''),[{
-                    'password': hashed_pass,
-                    'change_date': datetime.now(),
-                    'username': username,
-                }])
-        else:
-            raise Exception('Não existe usuário com esse username.')
-        
-    def delete_usuario(username):
-        with engine.begin() as con:
-            con.execute(text(f'''
-                DELETE FROM TbUsuarioStreamlit
-                WHERE 
-                    username = :username
-            '''),[{
-                'username': username,
-            }])
-
-    def desativar_usuario(username):
-        with engine.begin() as con:
-            con.execute(text(f'''
-                UPDATE TbUsuarioStreamlit
-                SET active = 0
-                WHERE 
-                    username = :username
-            '''),[{
-                'username': username,
-            }])
-            
-    def ativar_usuario(username):
-        with engine.begin() as con:
-            con.execute(text(f'''
-                UPDATE TbUsuarioStreamlit
-                SET active = 1
-                WHERE 
-                    username = :username
-            '''),[{
-                'username': username,
-            }])
-
-    def delete_secret(username):
-        with engine.begin() as con:
-            con.execute(text(f'''
-                UPDATE TbUsuarioStreamlit
-                SET secret_tfa = :secret
-                WHERE 
-                    username = :username
-            '''),[{
-                'username': username,
-                'secret': None,
-            }])
-    
-    def save_secret_to_db(username, secret):
-        with engine.begin() as con:
-            con.execute(text(f'''
-                UPDATE TbUsuarioStreamlit
-                SET secret_tfa = :secret
-                WHERE 
-                    username = :username
-            '''),[{
-                'username': username,
-                'secret': secret,
-            }])
-            
-    def revoke_session(session_id=None, username=None):
-        # Remova a sessão do banco de dados
-        query = '''
-                DELETE FROM TbSessaoStreamlit
-            '''
-        params = {}
-        if session_id:
-            query+='''
-                WHERE session_id = :session_id
-            '''
-            params['session_id'] = session_id
-        
-        if username:
-            query_add = '''
-                user_id in (
-                    SELECT id from TbUsuarioStreamlit
-                    WHERE username = :username
-                )
-            '''
-            if 'WHERE'.lower() in query.lower():
-                query+='and' + query_add
-            
-            query+='WHERE' + query_add
-            
-            params['username'] = username
-        
-        if not params:
-            params = None
-        
-        with engine.begin() as con:
-            con.execute(text(query), params)
-    
-    def generate_reset_token(username, reset_token_expiry=1):
-        '''reset_token_expiry horas'''
-        token = secrets.token_urlsafe(64)
-        expiry = datetime.utcnow() + timedelta(hours=reset_token_expiry)
-
-        with engine.begin() as con:
-            con.execute(text('''
-                UPDATE TbUsuarioStreamlit
-                SET reset_token = :token,
-                    reset_token_expiry = :expiry
-                WHERE username = :username
-            '''), {
-                'token': token,
-                'expiry': expiry,
-                'username': username
-            })
-        return token, expiry
-
     def _request_password_reset(self, container=st):
         with container:
             with st.expander('Solicitar Redefinição de Senha'):
@@ -966,6 +515,456 @@ class Authenticate:
             else:
                 st.stop()
     
+    def login(self, form_name: str, container: st = st):
+        """
+        Realiza o fluxo completo de login:
+        1. Se não autenticado: pede username e senha.
+        2. Verifica credenciais. Se ok, verifica se necessita 2FA.
+        3. Se 2FA não configurado, configura. Se configurado, pede código.
+        4. Se 2FA verificado, gera sessão e salva no cookie.
+        """
+
+        if self.auth_reset_views:
+            self._reset_password()
+            
+            if self.require_2fa:
+                self._reset_2fa()
+        
+        col1, col2 = st.columns(2)
+        
+        if st.session_state['authentication_status']:
+            if self.require_2fa:
+                if st.session_state['authenticated_2fa']:
+                    # Já autenticado completamente
+                    return self._get_user_data()
+            else:
+                # 2FA não é requerido
+                return self._get_user_data()
+
+        # Passo 1: Se não autenticado (username/senha)
+        if not st.session_state['authentication_status']:
+            if self.auth_reset_views:
+                self._request_password_reset(col1)
+
+            login_form = container.form('Login')
+            login_form.subheader(form_name)
+            
+            username = login_form.text_input('Username', key='login_username_input').lower().strip()
+            password = login_form.text_input('Password', type='password', key='login_password_input')
+            
+            if login_form.form_submit_button('Login'):
+                if not username:
+                    container.error("Preencha o campo Username.")
+
+                with container.spinner('Carregando...'):
+                    if self.check_credentials(username, password):
+                        
+                        self._component_create_session()
+                        logger.debug(f"Usuário {username} autenticado com sucesso.")
+                    else:
+                        container.error('Usuário ou senha incorretos.')
+
+        # # # Passo 2: Usuário e senha ok, mas falta 2FA
+        if self.require_2fa:
+            if self.auth_reset_views:
+                self._request_2fa_reset(col2)
+            
+            self._component_require2fa()
+
+        return self._get_user_data()
+    
+    def check_credentials(self, username: str, password: str) -> bool:
+        df_user = Authenticate.select_usuario_by_username(username)
+        if df_user.empty:
+            self._clear_session_and_cookie(None)
+            return False
+
+        if not self.check_password(password, df_user['password'][0]):
+            self._clear_session_and_cookie(None)
+            return False
+
+        # Credenciais corretas
+        st.session_state['user_id'] = df_user['id'][0]
+        st.session_state['username'] = df_user['username'][0]
+        st.session_state['name'] = str(df_user['name'][0]).title()
+        st.session_state['role'] = df_user['role'][0]
+        st.session_state['email'] = df_user['email'][0]
+        st.session_state['authentication_status'] = True
+
+        if self.require_2fa:
+            st.session_state['authenticated_2fa'] = False
+        else:
+            st.session_state['authenticated_2fa'] = True
+
+        return True
+    
+    @staticmethod
+    def generate_device_fingerprint(headers):
+        
+        """Gera um fingerprint baseado no User-Agent e no endereço IP."""
+        data = (
+            headers.get('User-Agent', ''),
+            headers.get('Accept-Language', ''),
+            headers.get('Origin', ''),
+            headers.get('Host', ''),
+            headers.get('Sec-Gpc', ''),
+            headers.get('Accept-Encoding', ''),
+            headers.get('Accept', ''),
+            headers.get('X-Real-Ip', ''),
+        )
+        
+        return hashlib.sha256(''.join(data).encode()).hexdigest()
+    
+    @staticmethod
+    def generate_session_id() -> str:
+        """Gera um session_id único e seguro."""
+        return str(uuid.uuid4())
+    
+    @staticmethod
+    def hash(password):
+        return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    
+    @staticmethod
+    def check_password(password: str, hashed_pw: str) -> bool:
+        try:
+            resultado = bcrypt.checkpw(password.encode(), hashed_pw.encode())
+            return resultado
+        except:
+            return
+
+    @staticmethod
+    def select_usuario_by_username(username: str):
+        # Ajuste a query conforme a necessidade
+        return pd.read_sql(
+            text('''
+                SELECT *
+                FROM TbUsuarioStreamlit
+                WHERE username = :username 
+                AND active = 1
+                ORDER BY id DESC
+            '''),
+            engine, params={'username': username}
+        ).head(1)
+    
+    @staticmethod
+    def get_user_by_id(user_id: int):
+        if user_id:
+            return pd.read_sql(
+                text('''
+                    SELECT *
+                    FROM TbUsuarioStreamlit
+                    WHERE id = :user_id
+                    AND active = 1
+                    ORDER by id DESC
+                '''),
+                engine, params={'user_id': int(user_id)}
+            ).head(1)
+        else:
+            return pd.DataFrame()
+
+    @staticmethod
+    def get_all_users():
+        with engine.begin() as con:
+            df = pd.read_sql(text(f'''
+                SELECT * FROM TbUsuarioStreamlit 
+                ORDER by id DESC
+                '''), con)
+        return df
+    
+    @staticmethod
+    def get_all_active_users():
+        with engine.begin() as con:
+            df = pd.read_sql(text(f'''
+                SELECT * FROM dbo.TbUsuarioStreamlit 
+                WHERE active = 1
+                ORDER by id DESC
+                '''), con)
+        return df
+    
+    @staticmethod
+    def insert_user(
+        name, 
+        username,
+        password,
+        email,
+        role,
+        ):  
+        df_usuarios = Authenticate.get_all_users()
+        if df_usuarios[df_usuarios['username'] == username].empty:
+            hashed_pass = Authenticate.hash(password)
+            with engine.begin() as con:
+                con.execute(text(f'''
+                    INSERT INTO TbUsuarioStreamlit
+                    (name, email, username, password, change_date, role, active)
+                    VALUES (
+                        :name,
+                        :email,
+                        :username,
+                        :password,
+                        :change_date,
+                        :role,
+                        :active
+                    )
+                '''),[{
+                    'name': name.strip(),
+                    'email': email.strip(),
+                    'username': username.strip(),
+                    'password': hashed_pass,
+                    'change_date': datetime.now(),
+                    'active': 1,
+                    'role': role
+                }])
+        else:
+            raise Exception('Já existe um usuário com esse username.')
+
+    @staticmethod
+    def update_dados(username, new_username=None, new_email=None, new_role=None, new_name=None):  
+        df_usuarios = Authenticate.get_all_users()
+        df_usuario = df_usuarios[df_usuarios['username'] == username].copy()
+        if new_username:
+            df_new_usuario = df_usuarios[df_usuarios['username'] == new_username.strip()].copy()
+            if not df_usuario.empty:
+                if not df_new_usuario.empty and new_username.strip() != username:
+                    raise Exception('Já existe um usuário com esse username.')
+            else:
+                raise Exception('Não existe usuário com esse username.')
+                
+        name = df_usuario['name'].values[0]
+        email = df_usuario['email'].values[0]
+        role = df_usuario['role'].values[0]
+        
+        if not new_username:
+            new_username = username
+        if not new_name:
+            new_name = name
+        if not new_email:
+            new_email = email
+        if not new_role:
+            new_role = role
+        
+        with engine.begin() as con:
+            con.execute(text(f'''
+                UPDATE TbUsuarioStreamlit
+                SET
+                    username = :username,
+                    email = :email,
+                    role = :role,
+                    name = :name,
+                    change_date = :change_date
+                where username = :username_old
+            '''),[{
+                'username': new_username.strip(),
+                'email': new_email.strip(),
+                'role': new_role.strip(),
+                'name': new_name.strip(),
+                'change_date': datetime.now(),
+                'username_old': username
+            }])
+    
+    @staticmethod
+    def update_senha(username, new_password):  
+        df_usuarios = Authenticate.get_all_users()
+        df_usuario = df_usuarios[df_usuarios['username'] == username].copy()
+        if not df_usuario.empty:
+            hashed_pass = Authenticate.hash(new_password)
+            with engine.begin() as con:
+                con.execute(text(f'''
+                    UPDATE TbUsuarioStreamlit
+                    SET
+                        password = :password,
+                        change_date = :change_date
+                    WHERE username = :username
+                '''),[{
+                    'password': hashed_pass,
+                    'change_date': datetime.now(),
+                    'username': username,
+                }])
+        else:
+            raise Exception('Não existe usuário com esse username.')
+    
+    @staticmethod
+    def delete_usuario(username):
+        with engine.begin() as con:
+            con.execute(text(f'''
+                DELETE FROM TbUsuarioStreamlit
+                WHERE 
+                    username = :username
+            '''),[{
+                'username': username,
+            }])
+
+    @staticmethod
+    def deactivate_user(username):
+        with engine.begin() as con:
+            con.execute(text(f'''
+                UPDATE TbUsuarioStreamlit
+                SET active = 0
+                WHERE 
+                    username = :username
+            '''),[{
+                'username': username,
+            }])
+        
+    @staticmethod
+    def active_user(username):
+        with engine.begin() as con:
+            con.execute(text(f'''
+                UPDATE TbUsuarioStreamlit
+                SET active = 1
+                WHERE 
+                    username = :username
+            '''),[{
+                'username': username,
+            }])
+
+    @staticmethod
+    def delete_secret(username):
+        with engine.begin() as con:
+            con.execute(text(f'''
+                UPDATE TbUsuarioStreamlit
+                SET secret_tfa = :secret
+                WHERE 
+                    username = :username
+            '''),[{
+                'username': username,
+                'secret': None,
+            }])
+    
+    @staticmethod
+    def save_secret_to_db(username, secret):
+        with engine.begin() as con:
+            con.execute(text(f'''
+                UPDATE TbUsuarioStreamlit
+                SET secret_tfa = :secret
+                WHERE 
+                    username = :username
+            '''),[{
+                'username': username,
+                'secret': secret,
+            }])
+    
+    @staticmethod
+    def revoke_session(session_id=None, username=None):
+        # Remova a sessão do banco de dados
+        query = '''
+                DELETE FROM TbSessaoStreamlit
+            '''
+        params = {}
+        if session_id:
+            query+='''
+                WHERE session_id = :session_id
+            '''
+            params['session_id'] = session_id
+        
+        if username:
+            query_add = '''
+                user_id in (
+                    SELECT id from TbUsuarioStreamlit
+                    WHERE username = :username
+                )
+            '''
+            if 'WHERE'.lower() in query.lower():
+                query+='and' + query_add
+            
+            query+='WHERE' + query_add
+            
+            params['username'] = username
+        
+        if not params:
+            params = None
+        
+        with engine.begin() as con:
+            con.execute(text(query), params)
+    
+    @staticmethod
+    def generate_reset_token(username, reset_token_expiry=1):
+        '''reset_token_expiry horas'''
+        token = secrets.token_urlsafe(64)
+        expiry = datetime.utcnow() + timedelta(hours=reset_token_expiry)
+
+        with engine.begin() as con:
+            con.execute(text('''
+                UPDATE TbUsuarioStreamlit
+                SET reset_token = :token,
+                    reset_token_expiry = :expiry
+                WHERE username = :username
+            '''), {
+                'token': token,
+                'expiry': expiry,
+                'username': username
+            })
+        return token, expiry
+    
+    @staticmethod
+    def get_all_sessions():
+        """Retorna as sessões ativas de um usuário."""
+        df_sessions = pd.read_sql(
+            text('''
+                SELECT
+                    u.username 
+                    ,s.session_id
+                    ,s.authenticated_2fa
+                    ,s.created_at
+                    ,s.expires_at
+                FROM TbSessaoStreamlit as s
+                LEFT JOIN TbUsuarioStreamlit as u on u.id = s.user_id 
+                ORDER BY created_at DESC
+            '''),
+            engine
+        )
+        return df_sessions
+    
+    @staticmethod
+    def get_active_sessions(user_id: int):
+        """Retorna as sessões ativas de um usuário."""
+        try:
+            df_sessions = pd.read_sql(
+                text('''
+                    SELECT *
+                    FROM TbSessaoStreamlit
+                    WHERE user_id = :user_id
+                    AND expires_at > :current_time
+                    ORDER BY created_at ASC
+                '''),
+                engine, params={'user_id': user_id, 'current_time': datetime.utcnow()}
+            )
+            return df_sessions
+        except Exception as e:
+            logger.error(f"Erro ao obter sessões ativas: {e}")
+            return pd.DataFrame()
+    
+    @staticmethod
+    def get_session_by_id(session_id: str):
+        """Recupera dados da sessão do banco de dados."""
+        df_session = pd.read_sql(
+            text('''
+                SELECT *
+                FROM TbSessaoStreamlit
+                WHERE session_id = :session_id
+            '''),
+            engine, params={'session_id': session_id}
+        )
+        if not df_session.empty:
+            session = df_session.iloc[0].to_dict()
+
+            # Gerar o fingerprint atual e comparar com o salvo
+            current_fingerprint = Authenticate.generate_device_fingerprint(st.context.headers)
+
+            if session['fingerprint'] != current_fingerprint:
+                logger.warning("Fingerprint não corresponde. Sessão potencialmente comprometida.")
+                return None  # Fingerprint não corresponde
+
+            return {
+                'session_id': session['session_id'],
+                'user_id': session['user_id'],
+                'authenticated_2fa': session['authenticated_2fa'],
+                'created_at': session['created_at'],
+                'expires_at': session['expires_at']
+            }
+        else:
+            return None
+    
+    @staticmethod
     def get_user_permissions(username):
         with engine.begin() as con:
             df = pd.read_sql(text(f'''
@@ -974,6 +973,7 @@ class Authenticate:
             '''), con, params=[{'username': username}])
         return df
 
+    @staticmethod
     def get_all_permissions():
         with engine.begin() as con:
             df = pd.read_sql(text(f'''
@@ -981,12 +981,11 @@ class Authenticate:
             '''), con)
         return df
 
+    @staticmethod
     def adicionar_permissao(username, app_name):
         u_permissions = Authenticate.get_user_permissions(username)
-        df_user: pd.DataFrame = Authenticate._select_usuario(username)
-        
+        df_user: pd.DataFrame = Authenticate.select_usuario_by_username(username)
         user_id = df_user['id'].values[0]
-        
         if app_name not in u_permissions.app_name.to_list():
             df = pd.DataFrame([{
                 'user_id': user_id,
@@ -1001,6 +1000,7 @@ class Authenticate:
                 index=False,
             )
 
+    @staticmethod
     def remover_permissao(username, app_name):
         with engine.begin() as con:
             con.execute(text(f'''
@@ -1009,11 +1009,49 @@ class Authenticate:
                 AND app_name = :app_name
             '''), [{'username': username, 'app_name': app_name}])
     
+    @staticmethod
+    def create_admin_if_not_exists():
+        # Criar uma sessão para interagir com o banco
+        session = Session(engine)
+
+        try:
+            # Verificar se já existe algum usuário no banco
+            user_count = session.query(TbUsuarioStreamlit).count()
+            if user_count == 0:
+                # Se não houver nenhum usuário, cria um usuário admin
+                logger.info("Nenhum usuário encontrado. Criando o usuário admin...")
+                
+                # Criar um novo usuário admin com a senha "admin"
+                admin_user = TbUsuarioStreamlit(
+                    name="Admin",
+                    email="admin@domain.com",
+                    username="admin",
+                    password=Authenticate.hash("admin"),  # Lembre-se de hashear a senha!
+                    role="admin",
+                    active=True,
+                    change_date=datetime.utcnow()
+                )
+                
+                session.add(admin_user)
+                session.commit()
+
+                # Log de sucesso
+                logger.info("Usuário admin criado com sucesso com a senha 'admin'.")
+            else:
+                logger.info("Usuários já existem no banco de dados. Nenhuma ação necessária.")
+        
+        except Exception as e:
+            logger.error(f"Erro ao tentar verificar ou criar o usuário admin: {e}")
+        finally:
+            # Fechar a sessão
+            session.close()
+    
+    @staticmethod
     def send_reset_email(username, email, reset_url, reset_type):
-        with SendMail() as mail:
-            mail.subtype = 'plain'
-            mail.assunto = f'Redefinição de {reset_type}'
-            mail.destinatarios = [
+        with SendMail() as mailer:
+            mailer.subtype = 'plain'
+            mailer.assunto = f'Redefinição de {reset_type}'
+            mailer.destinatarios = [
                 email,
             ]
             message = f"""
@@ -1027,6 +1065,6 @@ class Authenticate:
         Este link é válido por 1 hora. Se você não solicitou isso, ignore este e-mail.
         
         """
-            mail.enviar_email(
+            mailer.enviar_email(
                 message,
             )

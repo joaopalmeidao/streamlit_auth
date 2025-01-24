@@ -5,11 +5,11 @@ from streamlit_auth.authentication.backend.auth import Authenticate
 from streamlit_auth.config import settings
 
 
-def pagina_gerenciar_permissao():
+def user_perms_page():
     st.title("🔑 Gerenciar Permissões")
     
     df_perms = Authenticate.get_all_permissions()
-    df_all_users = Authenticate.select_all_users()
+    df_all_users = Authenticate.get_all_users()
     lista_perms = settings.APP_NAMES
     
     # Mesclar permissões globais com permissões específicas

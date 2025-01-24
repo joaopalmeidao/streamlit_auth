@@ -1,6 +1,6 @@
-from test.test_app import main, Authenticate
+from test.test_app import test_page, Authenticate
 
 
 if __name__ == '__main__':
     Authenticate.create_admin_if_not_exists()
-    main()
+    test_page()

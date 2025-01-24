@@ -1,19 +1,25 @@
 __all__ = [
     'Authenticate',  # Classe de autenticação
-    
-    'pagina_gerenciar_permissao',  # Função para gerenciar permissões
-    'pagina_gerenciar_usuarios',  # Função para gerenciar usuários
-    'main_page_gerenciar',  # Pagina principal
-    
+    'user_manager_page',  # Pagina principal
+    'user_perms_page',  # Função para gerenciar permissões
+    'user_manager_page',  # Função para gerenciar usuários
+    'session_manager_page',  # Função para gerenciar sessoes
+    'user_profile_page',  # Pagina de perfil de usuario
+    'user_register_page',  # formulario de registro
     'TbUsuarioStreamlit',  # Modelo de usuário
     'TbSessaoStreamlit',  # Modelo de sessão
     'TbPermissaoUsuariosStreamlit',  # Modelo de permissões
 ]
 
 from .backend.auth import Authenticate
-from .frontend.perms import pagina_gerenciar_permissao
-from .frontend.users import pagina_gerenciar_usuarios
-from .frontend.main_page import main_page_gerenciar
+
+from .frontend.manager import user_manager_page
+from .frontend.manager.perms import user_perms_page
+from .frontend.manager.users import user_manager_page
+from .frontend.manager.sessions import session_manager_page
+
+from .frontend.profile.user_profile import user_profile_page
+from .frontend.register.user_register import user_register_page
 
 # Modelos de banco de dados
 from .backend.models import (

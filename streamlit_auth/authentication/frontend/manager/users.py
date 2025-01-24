@@ -7,11 +7,11 @@ from streamlit_auth.authentication.backend.auth import (
 )
 
 
-def pagina_gerenciar_usuarios():
+def user_manager_page():
     st.title("🔑 Gerenciar Usuários")
 
     # Obter lista de usuários (sem a senha)
-    df_usuarios = Authenticate.select_all_users().drop(columns=[
+    df_usuarios = Authenticate.get_all_users().drop(columns=[
         "password",
         "secret_tfa",
         "reset_token",
@@ -111,7 +111,7 @@ def pagina_gerenciar_usuarios():
             st.write("### Desativar Usuário")
             if st.form_submit_button("Desativar"):
                 try:
-                    Authenticate.desativar_usuario(selected_user)
+                    Authenticate.deactivate_user(selected_user)
                     st.success("Usuário desativado com sucesso!")
                     st.rerun()
                 except Exception as e:
@@ -121,7 +121,7 @@ def pagina_gerenciar_usuarios():
             st.write("### Ativar Usuário")
             if st.form_submit_button("Ativar"):
                 try:
-                    Authenticate.ativar_usuario(selected_user)
+                    Authenticate.active_user(selected_user)
                     st.success("Usuário ativado com sucesso!")
                     st.rerun()
                 except Exception as e:

@@ -3,7 +3,9 @@ import logging
 
 from streamlit_auth.authentication import (
     Authenticate,
-    main_page_gerenciar
+    user_manager_page,
+    user_profile_page,
+    user_register_page,
 )
 from streamlit_auth.config import settings
 
@@ -11,37 +13,12 @@ from streamlit_auth.config import settings
 logger = logging.getLogger(settings.MAIN_LOGGER_NAME)
 
 
-def init_app():
+TITLE = "Strealit Authenticate"
+
+
+def test_page():
+    st.set_page_config(page_title=TITLE, layout='wide')
     
-    st.set_page_config(page_title="Strealit Authenticate", layout='wide')
-
-    st.markdown(""" 
-    <style> 
-
-        .font {                                          
-            font-size:30px; 
-            font-family: 'Cooper Black'; 
-            color: white;
-            } 
-
-        #MainMenu, 
-        .stAppToolbar,
-        .css-10pw50.ea3mdgi1 {
-                visibility: hidden;
-                }
-        
-        .css-vk3wp9 {
-            background-color: #333333 !important;
-            color: black !important;
-        }
-        
-    </style> """, unsafe_allow_html=True)
-    
-
-# Página principal
-def main():
-    
-    init_app()
     
     authenticator = Authenticate(
         secret_key='123',
@@ -60,7 +37,7 @@ def main():
     secret_tfa = user_data.get('secret', None)
     role = user_data['role']
 
-    st.sidebar.write('Strealit Authenticate')
+    st.sidebar.write(TITLE)
     
     # Logout
     if authentication_status:
@@ -69,19 +46,33 @@ def main():
     # Mensagens básicas
     if authentication_status == False:
         st.warning("Por favor, insira seu nome de usuário.")
+        user_register_page()
         return
 
     # Se já autenticado com 2FA OK, mostra aplicação
     if authentication_status and authenticated_2fa:
         
         opcoes_admin = ['Gerenciar']
+        opcoes_usuario = ['Perfil de Usuário']
         
         st.write('Autenticado')
         
         if role == 'admin':
-            dd_opcoes_admin = st.sidebar.selectbox(
-                "Selecione uma opção:",
-                opcoes_admin,
-                )
-            if dd_opcoes_admin == "Gerenciar":
-                main_page_gerenciar()
+            user_permissions = opcoes_usuario + opcoes_admin
+            
+        else:
+            user_permissions = Authenticate.get_user_permissions(username)['app_name'].to_list()
+            user_permissions = sorted(list(i for i in set(user_permissions) if i in settings.APP_NAMES))
+            user_permissions += opcoes_usuario
+        
+        dd_opcoes_page = st.sidebar.selectbox(
+            "Selecione uma opção:",
+            user_permissions,
+            )
+        
+        if role == 'admin':
+            if dd_opcoes_page == "Gerenciar":
+                user_manager_page()
+        
+        if dd_opcoes_page == "Perfil de Usuário":
+            user_profile_page(user_data)
