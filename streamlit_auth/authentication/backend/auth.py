@@ -785,6 +785,33 @@ class Authenticate:
         return {"valid": True, "message": "Nome de usuário, senha e email são válidos."}
     
     @staticmethod
+    def clean_expired_sessions():
+        execute_query('''
+            DELETE FROM TbSessaoStreamlit
+            WHERE expires_at < :current_time
+        ''', params={'current_time': datetime.utcnow()})
+        logger.info("Sessões expiradas foram removidas.")
+
+    @staticmethod
+    def clean_expired_tokens():
+        execute_query('''
+            UPDATE TbUsuarioStreamlit
+            SET activation_token = NULL, activation_token_expiry = NULL
+            WHERE activation_token_expiry < :current_time
+        ''', params={'current_time': datetime.utcnow()})
+        execute_query('''
+            UPDATE TbUsuarioStreamlit
+            SET reset_password_token = NULL, reset_password_token_expiry = NULL
+            WHERE reset_password_token_expiry < :current_time
+        ''', params={'current_time': datetime.utcnow()})
+        execute_query('''
+            UPDATE TbUsuarioStreamlit
+            SET reset_tfa_token = NULL, reset_tfa_token_expiry = NULL
+            WHERE reset_tfa_token_expiry < :current_time
+        ''', params={'current_time': datetime.utcnow()})
+        logger.info("Tokens expirados foram removidos.")
+    
+    @staticmethod
     def generate_session_id() -> str:
         """Gera um session_id único e seguro."""
         return str(uuid.uuid4())
