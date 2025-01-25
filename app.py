@@ -21,8 +21,8 @@ def test_page():
     authenticator = Authenticate(
         secret_key='98duasng@89duas98duan9d8a21321u@#0dsa9',
         session_expiry_days=7,
-        require_2fa=True,
-        auth_reset_views=True,
+        require_2fa=False,
+        auth_reset_views=False,
         site_name='https://st-mfa.streamlit.app/',
         user_activation_request=False,
     )
