@@ -1000,7 +1000,7 @@ class Authenticate:
                     :password,
                     :change_date,
                     :role,
-                    :active
+                    :active,
                     :failed_attempts
                 )
             ''', params={
