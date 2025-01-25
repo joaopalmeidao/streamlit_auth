@@ -52,14 +52,9 @@ def test_page():
         opcoes_admin = ['Gerenciar']
         opcoes_usuario = ['Perfil de Usuário']
         
-        st.write('Autenticado')
+        st.sidebar.write(f'Seja bem vindo: {username}')
         
-        if role == 'admin':
-            user_permissions = opcoes_usuario + opcoes_admin
-            
-        else:
-            user_permissions = authenticator.get_user_apps_perms(username)
-            user_permissions += opcoes_usuario
+        user_permissions = opcoes_usuario + opcoes_admin
         
         selected_option = st.sidebar.selectbox(
             "Selecione uma opção:",
