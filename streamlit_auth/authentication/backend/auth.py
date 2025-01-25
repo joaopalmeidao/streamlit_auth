@@ -983,7 +983,16 @@ class Authenticate:
             hashed_pass = Authenticate.hash(password)
             execute_query(f'''
                 INSERT INTO TbUsuarioStreamlit
-                (name, email, username, password, change_date, role, active)
+                (
+                    name,
+                    email,
+                    username,
+                    password,
+                    change_date,
+                    role,
+                    active,
+                    failed_attempts
+                    )
                 VALUES (
                     :name,
                     :email,
