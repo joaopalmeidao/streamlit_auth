@@ -24,7 +24,9 @@ def test_page():
         page_icon='🔒'
         )
     
-    st.sidebar.write(f'🔒 {TITLE}')
+    st.sidebar.image(
+        'doc/imgs/logo.png'
+    )
     
     opcoes_livres = [
         '📝 Documentação',
