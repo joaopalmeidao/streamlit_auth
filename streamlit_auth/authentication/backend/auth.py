@@ -76,8 +76,8 @@ class Authenticate:
         self.cookie_name = cookie_name
         self.secret_key = secret_key
         self.session_expiry_days = session_expiry_days
-        self.require_2fa = require_2fa  # Novo parâmetro para controlar o 2FA
-        self.auth_reset_views = auth_reset_views  # Novo parâmetro para controlar o 2FA
+        self.require_2fa = require_2fa
+        self.auth_reset_views = auth_reset_views
         self.site_name = site_name
         
         self.cookie_manager = stx.CookieManager()
