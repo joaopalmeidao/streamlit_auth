@@ -1123,7 +1123,7 @@ class Authenticate:
         })
         
     @staticmethod
-    def active_user(username: str) -> None:
+    def activate_user(username: str) -> None:
         execute_query(f'''
             UPDATE TbUsuarioStreamlit
             SET active = 1

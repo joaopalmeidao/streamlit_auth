@@ -124,7 +124,7 @@ def users_manager_page():
             st.write("### Ativar Usuário")
             if st.form_submit_button("Ativar"):
                 try:
-                    Authenticate.active_user(selected_user)
+                    Authenticate.activate_user(selected_user)
                     st.success("Usuário ativado com sucesso!")
                     st.rerun()
                 except Exception as e:
