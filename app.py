@@ -18,23 +18,20 @@ TITLE = "Strealit Authenticate"
 def test_page():
     st.set_page_config(page_title=TITLE, layout='wide')
     
-    
     authenticator = Authenticate(
-        secret_key='123',
+        secret_key='98duasng@89duas98duan9d8a21321u@#0dsa9',
         session_expiry_days=7,
-        require_2fa=False,
-        auth_reset_views=False,
-        site_name='http://localhost:8501/',
-        user_activation_request=False,
+        require_2fa=True,
+        auth_reset_views=True,
+        site_name='https://st-mfa.streamlit.app/',
+        user_activation_request=True,
     )
     
     user_data = authenticator.login("Login")
 
     authentication_status = user_data['authentication_status']
-    name = user_data['name']
     username = user_data['username']
     authenticated_2fa = user_data['authenticated_2fa']
-    secret_tfa = user_data.get('secret', None)
     role = user_data['role']
 
     st.sidebar.write(TITLE)

@@ -15,6 +15,10 @@ A robust library for authentication with Streamlit, featuring 2FA, permissions, 
 
 ---
 
+## Sample App / App de Exemplo
+
+- [Sample App](https://st-mfa.streamlit.app/)
+
 ## 🌎 Available Languages / Idiomas Disponíveis
 
 - [English](https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/readme/en.md)
@@ -27,8 +31,3 @@ A robust library for authentication with Streamlit, featuring 2FA, permissions, 
 Streamlit Auth Library is ideal for applications that require secure authentication and access control. With support for 2FA and user management, it provides a complete solution.
 
 A biblioteca Streamlit Auth é ideal para aplicativos que requerem autenticação segura e controle de acesso. Com suporte para 2FA e gerenciamento de usuários, oferece uma solução completa.
-
-Continue reading in your preferred language:
-
-- [English](https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/readme/en.md)
-- [Português](https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/readme/pt-BR.md)
