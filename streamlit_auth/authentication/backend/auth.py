@@ -957,7 +957,7 @@ class Authenticate:
     @staticmethod
     def get_all_active_users() -> pd.DataFrame:
         df = pd.read_sql(text(f'''
-            SELECT * FROM dbo.TbUsuarioStreamlit 
+            SELECT * FROM TbUsuarioStreamlit 
             WHERE active = 1
             ORDER by id DESC
             '''), engine)
