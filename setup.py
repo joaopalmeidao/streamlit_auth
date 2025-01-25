@@ -1,6 +1,9 @@
 import os
 from setuptools import setup, find_packages
 
+from streamlit_auth import __version__
+
+
 def read_requirements():
     """Lê as dependências do arquivo requirements.txt"""
     with open(os.path.join(os.path.dirname(__file__), 'requirements.txt')) as f:
@@ -18,7 +21,7 @@ def read_long_description():
 
 setup(
     name="streamlit_auth_mfa",
-    version="5.1.0",
+    version=__version__,
     description="A robust library for authentication with Streamlit, featuring 2FA, permissions, and session management.",
     long_description=read_long_description(), 
     long_description_content_type="text/markdown",

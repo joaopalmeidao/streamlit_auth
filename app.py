@@ -15,6 +15,57 @@ logger = logging.getLogger(settings.MAIN_LOGGER_NAME)
 TITLE = "Strealit Authenticate"
 
 
+def display_sidebar_links():
+
+    LINKS_OUTROS_SITES = {
+        'GitHub': 'https://github.com/joaopalmeidao',
+        'LinkedIn': 'https://www.linkedin.com/in/joaopalmeidao/',
+    }
+
+    st.sidebar.markdown(
+    """
+    <style>
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+        }
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+        .dropdown-item {
+            padding: 12px 16px !important;
+            display: block !important;
+            text-decoration: none !important;
+            color: #0080ff !important;
+            border-radius: 10px;
+        }
+        .dropdown-item:hover {
+            background-color: #ddd;
+        }
+    </style>
+    """
+    , unsafe_allow_html=True
+    )
+
+    st.sidebar.markdown("<div class='dropdown'>", unsafe_allow_html=True)
+    st.sidebar.markdown("  <div class='dropdown-content'>", unsafe_allow_html=True)
+
+    
+    for name, link in LINKS_OUTROS_SITES.items():
+        st.sidebar.markdown(f"    <a class='dropdown-item' target='_blank' href='{link}'>{name}</a>", unsafe_allow_html=True)
+
+    st.sidebar.markdown("  </div>", unsafe_allow_html=True)
+    st.sidebar.markdown("</div>", unsafe_allow_html=True)
+
+
 def test_page():
     st.set_page_config(page_title=TITLE, layout='wide')
     
@@ -54,10 +105,10 @@ def test_page():
         opcoes_admin = ['Gerenciar']
         opcoes_usuario = ['Perfil de Usuário']
         
-        st.sidebar.write(f'Seja bem vindo: {username}')
+        st.sidebar.write(f'Seja bem vindo {username}')
         
         if role == 'admin':
-            user_permissions = opcoes_usuario + opcoes_admin
+            user_permissions = opcoes_usuario + opcoes_admin  + settings.APP_NAMES
             
         else:
             user_permissions = authenticator.get_user_apps_perms(username)
@@ -65,7 +116,7 @@ def test_page():
         
         selected_option = st.sidebar.selectbox(
             "Selecione uma opção:",
-            user_permissions,
+            sorted(user_permissions),
             )
         
         if role == 'admin' and selected_option == "Gerenciar":
@@ -73,6 +124,9 @@ def test_page():
         
         if selected_option == "Perfil de Usuário":
             user_profile_page(user_data)
+    
+    display_sidebar_links()
+
 
 if __name__ == '__main__':
     Authenticate.create_admin_if_not_exists()
