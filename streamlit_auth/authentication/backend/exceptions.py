@@ -6,7 +6,7 @@ from streamlit_auth.config import settings
 
 logger = logging.getLogger(settings.MAIN_LOGGER_NAME)
 
-def display_errors(exception) -> None:
+def display_errors(exception: Exception) -> None:
     """
     Exibe as mensagens de erro no frontend.
     

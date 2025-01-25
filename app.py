@@ -61,6 +61,7 @@ def test_page():
             auth_reset_views=False,
             site_name='https://st-mfa.streamlit.app/',
             user_activation_request=False,
+            limit_login_fail=True,
         )
         
         authenticator.role_to_create = 'admin'

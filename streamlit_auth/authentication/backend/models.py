@@ -25,6 +25,7 @@ ROLES = ["user", "admin"]
 Base = declarative_base()
 
 class TbUsuarioStreamlit(Base):
+    
     __tablename__ = 'TbUsuarioStreamlit'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -49,23 +50,30 @@ class TbUsuarioStreamlit(Base):
     
     activation_token = Column(String(255))
     activation_token_expiry = Column(DateTime)
+    
+    failed_attempts = Column(Integer, default=0, nullable=False)
+    lockout_until = Column(DateTime)
 
     # Relacionamento com TbSessaoStreamlit
-    sessions = relationship('TbSessaoStreamlit', back_populates='user', cascade="all, delete-orphan")
+    sessions = relationship(
+        'TbSessaoStreamlit',
+        back_populates='user',
+        cascade="all, delete-orphan"
+        )
     
     # Relacionamento com TbPermissaoUsuariosStreamlit
-    perms = relationship('TbPermissaoUsuariosStreamlit', back_populates='user')
+    perms = relationship(
+        'TbPermissaoUsuariosStreamlit',
+        back_populates='user',
+        cascade="all, delete-orphan",
+        )
     
 class TbSessaoStreamlit(Base):
-    """
-    Modelo para a tabela de sessões do Streamlit.
-    Armazena informações sobre as sessões de autenticação dos usuários.
-    """
-
+    
     __tablename__ = 'TbSessaoStreamlit'
 
     session_id = Column(String(128), primary_key=True, unique=True, nullable=False)
-    user_id = Column(Integer, ForeignKey(TbUsuarioStreamlit.id), nullable=False)
+    user_id = Column(Integer, ForeignKey(TbUsuarioStreamlit.id, ondelete='CASCADE'), nullable=False)
     authenticated_2fa = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     expires_at = Column(DateTime, nullable=False)
@@ -79,7 +87,7 @@ class TbPermissaoUsuariosStreamlit(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     
-    user_id = Column(Integer, ForeignKey(TbUsuarioStreamlit.id), nullable=False)
+    user_id = Column(Integer, ForeignKey(TbUsuarioStreamlit.id, ondelete='CASCADE'), nullable=False)
     username = Column(String(64), nullable=False)
     app_name = Column(Text, nullable=False)
     date = Column(DateTime, default=datetime.now)

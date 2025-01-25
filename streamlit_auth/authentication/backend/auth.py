@@ -68,11 +68,15 @@ class Authenticate:
         session_expiry_days: int = 7,
         require_2fa: bool = True,
         cookie_name: str = 'session',
-        auth_reset_views = False,
-        site_name = 'http://localhost:8501/',
+        auth_reset_views: bool = False,
+        site_name: str = 'http://localhost:8501/',
         
-        max_sessions=None,
-        user_activation_request=True,
+        max_sessions: int = None,
+        user_activation_request: bool = True,
+        
+        limit_login_fail: bool = False,
+        max_login_attempts: int = 5,
+        lockout_time: int = 15,
         
         ) -> None:
         self.cookie_name = cookie_name
@@ -86,6 +90,10 @@ class Authenticate:
         
         self.max_sessions = max_sessions
         self.user_activation_request = user_activation_request
+        
+        self.limit_login_fail = limit_login_fail
+        self.max_login_attempts = max_login_attempts
+        self.lockout_time = lockout_time # minutes
 
         # Inicializa o session_state caso não exista
         self._initialize_session_state()
@@ -265,7 +273,13 @@ class Authenticate:
         else:
             st.error("Erro ao criar sessão. Tente novamente.")
 
-    def logout(self, button_name: str, container = st.sidebar, key: str = None, session_keys_to_delete=[]) -> None:
+    def logout(
+        self,
+        button_name: str,
+        container = st.sidebar,
+        key: str = None,
+        session_keys_to_delete: list = []
+        ) -> None:
         if container.button(button_name, key=key):
             for i in session_keys_to_delete:
                 if i in st.session_state.keys():
@@ -328,7 +342,7 @@ class Authenticate:
 
         return False
 
-    def _autenticar_2fa(self, df_user: pd.DataFrame, secret_tfa: str, container=st) -> bool:
+    def _autenticar_2fa(self, df_user: pd.DataFrame, secret_tfa: str, container: st = st) -> bool:
         username = df_user['username'][0]
         totp = pyotp.TOTP(secret_tfa)
 
@@ -372,7 +386,7 @@ class Authenticate:
             'authenticated_2fa': st.session_state['authenticated_2fa']
         }
     
-    def _request_password_reset(self, container=st) -> None:
+    def _request_password_reset(self, container: st = st) -> None:
         with container:
             with st.expander('♻️ Solicitar Redefinição de Senha'):
                 form = st.form('password_reset')
@@ -395,7 +409,7 @@ class Authenticate:
                             Authenticate.send_reset_email(username, email, reset_url, "Senha")
                         st.success("Um link de redefinição de senha foi enviado para o seu e-mail.")
     
-    def _reset_password(self, container=st) -> None:
+    def _reset_password(self, container: st = st) -> None:
         token = st.query_params.get('password_token')
         if not token:
             return
@@ -443,7 +457,7 @@ class Authenticate:
         else:
             st.stop()
     
-    def _request_2fa_reset(self, container=st) -> None:
+    def _request_2fa_reset(self, container: st = st) -> None:
         with container:
             if self.require_2fa:
                 with st.expander('♻️ Solicitar Redefinição de 2FA'):
@@ -467,7 +481,7 @@ class Authenticate:
                                 Authenticate.send_reset_email(username, email, reset_url, "2FA")
                             st.success("Um link de redefinição de 2FA foi enviado para o seu e-mail.")
         
-    def _reset_2fa(self, container=st) -> None:
+    def _reset_2fa(self, container: st = st) -> None:
         if self.require_2fa:
             token = st.query_params.get('2fa_token')
             if not token:
@@ -508,7 +522,7 @@ class Authenticate:
             else:
                 st.stop()
     
-    def _activate_user(self, container=st) -> None:
+    def _activate_user(self, container: st = st) -> None:
         """
         Processa o token de ativação e ativa o usuário.
         """
@@ -546,7 +560,7 @@ class Authenticate:
         
         st.query_params.clear()
     
-    def _request_user_activation(self, container=st) -> None:
+    def _request_user_activation(self, container: st = st) -> None:
         """
         Solicita a ativação do usuário enviando um link por e-mail.
         """
@@ -665,7 +679,8 @@ class Authenticate:
                     self._component_create_session()
                     logger.debug(f"Usuário {username} autenticado com sucesso.")
                 else:
-                    container.error('Usuário ou senha incorretos.')
+                    if not self.limit_login_fail:
+                        container.error('Usuário ou senha incorretos.')
 
         # # # Passo 2: Usuário e senha ok, mas falta 2FA
         if self.require_2fa:
@@ -682,11 +697,47 @@ class Authenticate:
             self._clear_session_and_cookie(None)
             return False
 
+        if self.limit_login_fail:
+            lockout_until = df_user['lockout_until'][0]
+            if lockout_until and datetime.utcnow() < pd.to_datetime(lockout_until):
+                st.error("Conta bloqueada devido a múltiplas tentativas de login falhadas. Tente novamente mais tarde.")
+                return False
+
         if not self.check_password(password, df_user['password'][0]):
-            self._clear_session_and_cookie(None)
+            if self.limit_login_fail:
+                failed_attempts = int(df_user['failed_attempts'][0]) + 1
+                if failed_attempts >= self.max_login_attempts:
+                    # Bloquear conta
+                    execute_query('''
+                        UPDATE TbUsuarioStreamlit
+                        SET failed_attempts = :failed_attempts,
+                            lockout_until = :lockout_until
+                        WHERE username = :username
+                    ''', params={
+                        'failed_attempts': failed_attempts,
+                        'lockout_until': datetime.utcnow() + timedelta(minutes=self.lockout_time),
+                        'username': username
+                    })
+                    st.error("Conta bloqueada devido a múltiplas tentativas de login falhadas. Tente novamente mais tarde.")
+                else:
+                    execute_query('''
+                        UPDATE TbUsuarioStreamlit
+                        SET failed_attempts = :failed_attempts
+                        WHERE username = :username
+                    ''', params={
+                        'failed_attempts': failed_attempts,
+                        'username': username
+                    })
+                    st.error(f"Usuário ou senha incorretos. {self.max_login_attempts - failed_attempts} tentativas restantes.")
             return False
 
-        # Credenciais corretas
+        execute_query('''
+            UPDATE TbUsuarioStreamlit
+            SET failed_attempts = 0,
+                lockout_until = NULL
+            WHERE username = :username
+        ''', params={'username': username})
+
         st.session_state['user_id'] = df_user['id'][0]
         st.session_state['username'] = df_user['username'][0]
         st.session_state['name'] = str(df_user['name'][0]).title()
@@ -914,12 +965,12 @@ class Authenticate:
     
     @staticmethod
     def insert_user(
-        name, 
-        username,
-        password,
-        email,
-        role,
-        active=True,
+        name: str, 
+        username: str,
+        password: str,
+        email: str,
+        role: str,
+        active: bool = True,
         ) -> None:
         validate = Authenticate.user_validation(
             username=username,
@@ -941,6 +992,7 @@ class Authenticate:
                     :change_date,
                     :role,
                     :active
+                    :failed_attempts
                 )
             ''', params={
                 'name': name.strip(),
@@ -949,13 +1001,23 @@ class Authenticate:
                 'password': hashed_pass,
                 'change_date': datetime.now(),
                 'active': active,
-                'role': role
+                'role': role,
+                'failed_attempts': 0,
             })
         else:
             raise ValidationError(['Já existe um usuário com esse username.'])
 
     @staticmethod
-    def update_dados(username, new_username=None, new_email=None, new_role=None, new_name=None) -> None:  
+    def update_dados(
+        username: str,
+        new_username: str = None,
+        new_email: str = None,
+        new_role: str = None,
+        new_name: str = None
+        ) -> None:
+        '''
+        update dados do usuario
+        '''
         df_usuarios = Authenticate.get_all_users()
         df_usuario = df_usuarios[df_usuarios['username'] == username].copy()
         if new_username:
@@ -1011,7 +1073,7 @@ class Authenticate:
         })
     
     @staticmethod
-    def update_senha(username, new_password) -> None:  
+    def update_senha(username: str, new_password: str) -> None:  
         df_usuarios = Authenticate.get_all_users()
         df_usuario = df_usuarios[df_usuarios['username'] == username].copy()
         if not df_usuario.empty:
@@ -1031,7 +1093,7 @@ class Authenticate:
             raise ValidationError(['Não existe usuário com esse username.'])
     
     @staticmethod
-    def delete_usuario(username) -> None:
+    def delete_usuario(username: str) -> None:
         execute_query(f'''
             DELETE FROM TbUsuarioStreamlit
             WHERE 
@@ -1041,7 +1103,7 @@ class Authenticate:
         })
 
     @staticmethod
-    def deactivate_user(username) -> None:
+    def deactivate_user(username: str) -> None:
         execute_query(f'''
             UPDATE TbUsuarioStreamlit
             SET active = 0
@@ -1052,7 +1114,7 @@ class Authenticate:
         })
         
     @staticmethod
-    def active_user(username) -> None:
+    def active_user(username: str) -> None:
         execute_query(f'''
             UPDATE TbUsuarioStreamlit
             SET active = 1
@@ -1063,7 +1125,7 @@ class Authenticate:
         })
 
     @staticmethod
-    def delete_secret(username) -> None:
+    def delete_secret(username: str) -> None:
         execute_query(f'''
             UPDATE TbUsuarioStreamlit
             SET secret_tfa = :secret
@@ -1075,7 +1137,7 @@ class Authenticate:
         })
     
     @staticmethod
-    def save_secret_to_db(username, secret) -> None:
+    def save_secret_to_db(username: str, secret: str) -> None:
         execute_query(f'''
             UPDATE TbUsuarioStreamlit
             SET secret_tfa = :secret
@@ -1087,7 +1149,7 @@ class Authenticate:
         })
 
     @staticmethod
-    def revoke_session(session_id=None, username=None) -> None:
+    def revoke_session(session_id: str = None, username: str = None) -> None:
         # Remova a sessão do banco de dados
         query = '''
                 DELETE FROM TbSessaoStreamlit
@@ -1119,7 +1181,7 @@ class Authenticate:
         execute_query(query, params=params)
     
     @staticmethod
-    def generate_reset_tfa_token(username, reset_token_expiry=1) -> tuple:
+    def generate_reset_tfa_token(username: str ,  reset_token_expiry: int = 1) -> tuple:
         '''reset_token_expiry horas'''
         token = secrets.token_urlsafe(64)
         expiry = datetime.utcnow() + timedelta(hours=reset_token_expiry)
@@ -1137,7 +1199,7 @@ class Authenticate:
         return token, expiry
     
     @staticmethod
-    def generate_reset_password_token(username, reset_token_expiry=1) -> tuple:
+    def generate_reset_password_token(username: str, reset_token_expiry: int = 1) -> tuple:
         '''reset_token_expiry horas'''
         token = secrets.token_urlsafe(64)
         expiry = datetime.utcnow() + timedelta(hours=reset_token_expiry)
@@ -1220,7 +1282,7 @@ class Authenticate:
             return None
     
     @staticmethod
-    def get_user_permissions(username) -> pd.DataFrame:
+    def get_user_permissions(username: str) -> pd.DataFrame:
         df = pd.read_sql(text(f'''
             SELECT * FROM TbPermissaoUsuariosStreamlit 
             WHERE username = :username
@@ -1235,7 +1297,7 @@ class Authenticate:
         return df
 
     @staticmethod
-    def adicionar_permissao(username, app_name) -> None:
+    def adicionar_permissao(username: str, app_name: str) -> None:
         u_permissions = Authenticate.get_user_permissions(username)
         df_user: pd.DataFrame = Authenticate.get_active_user_by_username(username)
         user_id = df_user['id'].values[0]
@@ -1254,7 +1316,7 @@ class Authenticate:
             )
 
     @staticmethod
-    def remover_permissao(username, app_name) -> None:
+    def remover_permissao(username: str, app_name: str) -> None:
         execute_query(f'''
             DELETE FROM TbPermissaoUsuariosStreamlit 
             WHERE username = :username
@@ -1306,7 +1368,7 @@ class Authenticate:
             ) if i in settings.APP_NAMES))
     
     @staticmethod
-    def send_reset_email(username, email, reset_url, reset_type) -> None:
+    def send_reset_email(username: str, email: str, reset_url: str, reset_type: str) -> None:
         with SendMail() as mailer:
             mailer.subtype = 'plain'
             mailer.assunto = f'Redefinição de {reset_type}'
