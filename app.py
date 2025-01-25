@@ -28,13 +28,6 @@ def test_page():
         'doc/imgs/logo.png'
     )
     
-    opcoes_livres = [
-        '📝 Documentação',
-        f'🔑 {TITLE}'
-        ]
-    
-    tabs = st.tabs(opcoes_livres)
-    
     st.markdown(
         '''
 <div style="text-align: center;">
@@ -42,6 +35,13 @@ def test_page():
 </div>
         ''', unsafe_allow_html=True
     )
+    
+    opcoes_livres = [
+        '📝 Documentação',
+        f'🔑 {TITLE}'
+        ]
+    
+    tabs = st.tabs(opcoes_livres)
     
     with tabs[0]:
         doc_page()
