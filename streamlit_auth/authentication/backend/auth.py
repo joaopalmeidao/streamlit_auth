@@ -60,6 +60,8 @@ class Authenticate:
         'authentication_status': False,
         'logout': False,
     }
+    
+    role_to_create = 'user'
 
     def __init__(self, 
         secret_key: str,
@@ -596,7 +598,7 @@ class Authenticate:
                                     username, 
                                     password, 
                                     email, 
-                                    'user',
+                                    self.role_to_create,
                                     active,
                                     )
                                 message = "Usuário adicionado com sucesso!"

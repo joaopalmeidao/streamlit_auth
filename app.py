@@ -27,6 +27,8 @@ def test_page():
         user_activation_request=False,
     )
     
+    authenticator.role_to_create = 'admin'
+    
     user_data = authenticator.login("Login")
 
     authentication_status = user_data['authentication_status']
@@ -54,7 +56,12 @@ def test_page():
         
         st.sidebar.write(f'Seja bem vindo: {username}')
         
-        user_permissions = opcoes_usuario + opcoes_admin
+        if role == 'admin':
+            user_permissions = opcoes_usuario + opcoes_admin
+            
+        else:
+            user_permissions = authenticator.get_user_apps_perms(username)
+            user_permissions += opcoes_usuario
         
         selected_option = st.sidebar.selectbox(
             "Selecione uma opção:",
