@@ -77,7 +77,7 @@ def users_manager_page():
             new_role = st.selectbox(
                 "Função:", ROLES, index=ROLES.index(df_user["role"].values[0])
             )
-            new_name = st.text_input("Nome Completo:", value=df_user["nome"].values[0])
+            new_name = st.text_input("Nome Completo:", value=df_user["name"].values[0])
             if st.form_submit_button("Atualizar Dados"):
                 try:
                     Authenticate.update_dados(

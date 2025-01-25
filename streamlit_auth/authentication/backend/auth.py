@@ -829,6 +829,7 @@ class Authenticate:
         
         return Authenticate.format_errors(errors)
     
+    @staticmethod
     def format_errors(errors: list) -> dict:
         # Retorna os erros ou uma mensagem de sucesso
         if errors:
@@ -1082,10 +1083,19 @@ class Authenticate:
         })
     
     @staticmethod
-    def update_senha(username: str, new_password: str) -> None:  
+    def update_senha(username: str, new_password: str) -> None:
         df_usuarios = Authenticate.get_all_users()
         df_usuario = df_usuarios[df_usuarios['username'] == username].copy()
         if not df_usuario.empty:
+            errors = []
+        
+            errors = Authenticate.password_validation(new_password, errors)
+            
+            validate = Authenticate.format_errors(errors)
+            
+            if not validate['valid']:
+                raise ValidationError(validate['errors'])
+                
             hashed_pass = Authenticate.hash(new_password)
             execute_query(f'''
                 UPDATE TbUsuarioStreamlit
