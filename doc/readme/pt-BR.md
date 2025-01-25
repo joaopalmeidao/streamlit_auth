@@ -159,7 +159,6 @@ def test_page():
     name = user_data['name']
     username = user_data['username']
     authenticated_2fa = user_data['authenticated_2fa']
-    secret_tfa = user_data.get('secret', None)
     role = user_data['role']
 
     st.sidebar.write(TITLE)

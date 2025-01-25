@@ -1,5 +1,7 @@
 import streamlit as st
 import logging
+import base64
+import pandas as pd
 
 from streamlit_auth.authentication import (
     Authenticate,
@@ -7,67 +9,20 @@ from streamlit_auth.authentication import (
     user_profile_page,
 )
 from streamlit_auth.config import settings
-
+from doc.app.documentacao import doc_page
 
 logger = logging.getLogger(settings.MAIN_LOGGER_NAME)
 
 
 TITLE = "Strealit Authenticate"
 
-
-def display_sidebar_links():
-
-    LINKS_OUTROS_SITES = {
-        'GitHub': 'https://github.com/joaopalmeidao',
-        'LinkedIn': 'https://www.linkedin.com/in/joaopalmeidao/',
-    }
-
-    st.sidebar.markdown(
-    """
-    <style>
-        .dropdown {
-            position: relative;
-            display: inline-block;
-        }
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            background-color: #f9f9f9;
-            min-width: 160px;
-            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-            z-index: 1;
-        }
-        .dropdown:hover .dropdown-content {
-            display: block;
-        }
-        .dropdown-item {
-            padding: 12px 16px !important;
-            display: block !important;
-            text-decoration: none !important;
-            color: #0080ff !important;
-            border-radius: 10px;
-        }
-        .dropdown-item:hover {
-            background-color: #ddd;
-        }
-    </style>
-    """
-    , unsafe_allow_html=True
-    )
-
-    st.sidebar.markdown("<div class='dropdown'>", unsafe_allow_html=True)
-    st.sidebar.markdown("  <div class='dropdown-content'>", unsafe_allow_html=True)
-
-    
-    for name, link in LINKS_OUTROS_SITES.items():
-        st.sidebar.markdown(f"    <a class='dropdown-item' target='_blank' href='{link}'>{name}</a>", unsafe_allow_html=True)
-
-    st.sidebar.markdown("  </div>", unsafe_allow_html=True)
-    st.sidebar.markdown("</div>", unsafe_allow_html=True)
-
-
 def test_page():
-    st.set_page_config(page_title=TITLE, layout='wide')
+    st.set_page_config(
+        page_title=TITLE,
+        layout='wide',
+        initial_sidebar_state="expanded",
+        page_icon='🔒'
+        )
     
     authenticator = Authenticate(
         secret_key='98duasng@89duas98duan9d8a21321u@#0dsa9',
@@ -87,8 +42,6 @@ def test_page():
     authenticated_2fa = user_data['authenticated_2fa']
     role = user_data['role']
 
-    st.sidebar.write(TITLE)
-
     # Mensagens básicas
     if not authentication_status:
         st.warning("Por favor, insira seu nome de usuário.")
@@ -103,7 +56,10 @@ def test_page():
     if authentication_status and authenticated_2fa:
         
         opcoes_admin = ['Gerenciar']
-        opcoes_usuario = ['Perfil de Usuário']
+        opcoes_usuario = [
+            'Perfil de Usuário',
+            'Documentação'
+            ]
         
         st.sidebar.write(f'Seja bem vindo {username}')
         
@@ -125,7 +81,14 @@ def test_page():
         if selected_option == "Perfil de Usuário":
             user_profile_page(user_data)
     
-    display_sidebar_links()
+        if selected_option == "Documentação":
+            doc_page()
+    
+    # Rodapé
+    st.markdown("""
+    ---
+    *Desenvolvido por João Paulo Almeida. Conecte-se comigo no [GitHub](https://github.com/joaopalmeidao) e [LinkedIn](https://www.linkedin.com/in/joaopalmeidao/).*
+    """)
 
 
 if __name__ == '__main__':
