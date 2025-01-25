@@ -465,7 +465,7 @@ def doc_page():
     elif secao == "📜 Licença":
         st.header("📜 Licença")
         st.markdown("""
-        Este projeto está licenciado sob a Licença MIT. Veja o arquivo [LICENSE](https://github.com/joaopalmeidao/streamlit_auth/blob/main/LICENSE?raw=True) para mais detalhes.
+        Este projeto está licenciado sob a Licença MIT. Veja o arquivo [LICENSE](https://github.com/joaopalmeidao/streamlit_auth/blob/main/LICENCE) para mais detalhes.
         """)
 
     elif secao == "📞 Contato":
