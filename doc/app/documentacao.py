@@ -33,7 +33,6 @@ def doc_page():
         "📞 Contato",
     ]
 
-    st.sidebar.write("Documentação")
     secao = st.sidebar.radio("Ir para", secoes)
     
     if secao == "📝 Descrição":
