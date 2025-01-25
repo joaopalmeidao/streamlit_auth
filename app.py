@@ -24,7 +24,7 @@ def test_page():
         require_2fa=True,
         auth_reset_views=True,
         site_name='https://st-mfa.streamlit.app/',
-        user_activation_request=True,
+        user_activation_request=False,
     )
     
     user_data = authenticator.login("Login")
