@@ -35,6 +35,14 @@ def test_page():
     
     tabs = st.tabs(opcoes_livres)
     
+    st.markdown(
+        '''
+<div style="text-align: center;">
+    <img src="https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/imgs/logo.png?raw=True" alt="Logo" width="300"/>
+</div>
+        ''', unsafe_allow_html=True
+    )
+    
     with tabs[0]:
         doc_page()
     
