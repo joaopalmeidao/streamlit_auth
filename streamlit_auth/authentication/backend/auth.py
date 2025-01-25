@@ -1271,7 +1271,7 @@ class Authenticate:
             user_count = session.query(TbUsuarioStreamlit).count()
             if user_count == 0:
                 # Se não houver nenhum usuário, cria um usuário admin
-                logger.info("Nenhum usuário encontrado. Criando o usuário admin...")
+                logger.debug("Nenhum usuário encontrado. Criando o usuário admin...")
                 
                 # Criar um novo usuário admin com a senha "admin"
                 admin_user = TbUsuarioStreamlit(
@@ -1288,9 +1288,9 @@ class Authenticate:
                 session.commit()
 
                 # Log de sucesso
-                logger.info("Usuário admin criado com sucesso com a senha 'admin'.")
+                logger.debug("Usuário admin criado com sucesso com a senha 'admin'.")
             else:
-                logger.info("Usuários já existem no banco de dados. Nenhuma ação necessária.")
+                logger.debug("Usuários já existem no banco de dados. Nenhuma ação necessária.")
         
         except Exception as e:
             logger.error(f"Erro ao tentar verificar ou criar o usuário admin: {e}")
