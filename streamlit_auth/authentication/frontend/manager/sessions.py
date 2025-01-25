@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 from streamlit_auth.core.database.manager import default_engine as engine
-from streamlit_auth.authentication.backend.auth import Authenticate
+from streamlit_auth.authentication.backend.auth import Authenticate, display_errors
 from streamlit_auth.authentication.backend.models import (
     TbSessaoStreamlit,
     TbUsuarioStreamlit,
@@ -31,4 +31,4 @@ def session_manager_page():
             st.success(f"Sessão {selected_sessions} revogada com sucesso!")
             st.rerun()
         except Exception as e:
-            st.error(f"Erro ao revogar sessão: {str(e)}")
+            display_errors(e)

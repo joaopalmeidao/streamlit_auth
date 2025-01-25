@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 from streamlit_auth.core.database.manager import default_engine as engine
-from streamlit_auth.authentication.backend.auth import Authenticate
+from streamlit_auth.authentication.backend.auth import Authenticate, display_errors
 from streamlit_auth.authentication.backend.models import (
     TbUsuarioStreamlit,
     TbPermissaoUsuariosStreamlit
@@ -30,7 +30,7 @@ def user_profile_page(user_data):
             )
             st.success("Perfil atualizado com sucesso!")
         except Exception as e:
-            st.error(f"Erro ao atualizar o perfil.")
+            display_errors(e)
 
     # Exibe permissões do usuário
     st.subheader("🔒 Permissões")
@@ -72,4 +72,4 @@ def user_profile_page(user_data):
                 st.success("Senha atualizada com sucesso!")
                 st.rerun()
             except Exception as e:
-                st.error(f"Erro ao atualizar senha.")
+                display_errors(e)

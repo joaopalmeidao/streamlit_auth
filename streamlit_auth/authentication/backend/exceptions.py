@@ -1,7 +1,12 @@
 import streamlit as st
+import logging
+
+from streamlit_auth.config import settings
 
 
-def display_validation_errors(exception):
+logger = logging.getLogger(settings.MAIN_LOGGER_NAME)
+
+def display_errors(exception) -> None:
     """
     Exibe as mensagens de erro no frontend.
     
@@ -12,6 +17,7 @@ def display_validation_errors(exception):
         for message in exception.messages:
             st.error(f"❌ {message}")  # Exibe cada mensagem como um erro no Streamlit
     else:
+        logger.error(exception, exc_info=True)
         st.error("❌ Um erro inesperado ocorreu.")
 
 class ValidationError(Exception):

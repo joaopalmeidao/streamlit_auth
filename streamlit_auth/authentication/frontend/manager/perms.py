@@ -1,7 +1,6 @@
-from time import sleep
-
 import streamlit as st
-from streamlit_auth.authentication.backend.auth import Authenticate
+
+from streamlit_auth.authentication.backend.auth import Authenticate, display_errors
 from streamlit_auth.config import settings
 
 
@@ -48,19 +47,23 @@ def user_perms_page():
             select_perms = st.multiselect("Permissões:", lista_perms)
             
             if st.form_submit_button("Adicionar"):
-                for app_name in select_perms:
-                    Authenticate.adicionar_permissao(selected_user, app_name)
-                st.success("Permissões adicionadas com sucesso!")
-                sleep(2)
-                st.rerun()
+                try:
+                    for app_name in select_perms:
+                        Authenticate.adicionar_permissao(selected_user, app_name)
+                    st.success("Permissões adicionadas com sucesso!")
+                    st.rerun()
+                except Exception as e:
+                    display_errors(e)
                 
         elif selected_action == "Remover Permissão":
             selected_user = st.selectbox("Usuário:", df_perms['username'])
             select_perms = st.multiselect("Permissões:", lista_perms)
             
             if st.form_submit_button("Remover"):
-                for app_name in select_perms:
-                    Authenticate.remover_permissao(selected_user, app_name)
-                st.success("Permissões removidas com sucesso!")
-                sleep(2)
-                st.rerun()
+                try:
+                    for app_name in select_perms:
+                        Authenticate.remover_permissao(selected_user, app_name)
+                    st.success("Permissões removidas com sucesso!")
+                    st.rerun()
+                except Exception as e:
+                    display_errors(e)

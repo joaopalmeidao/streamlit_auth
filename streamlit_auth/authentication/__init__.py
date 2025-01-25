@@ -1,7 +1,7 @@
 __all__ = [
     'Authenticate',  # Classe de autenticação
     'ValidationError',  # Pagina principal
-    'display_validation_errors',  # Pagina principal
+    'display_errors',  # Pagina principal
     'user_manager_main_page',  # Pagina principal
     'user_perms_page',  # Função para gerenciar permissões
     'users_manager_page',  # Função para gerenciar usuários
@@ -16,7 +16,7 @@ from .backend.auth import Authenticate
 
 from .backend.exceptions import (
     ValidationError,
-    display_validation_errors
+    display_errors
 )
 
 from .frontend.manager import user_manager_main_page

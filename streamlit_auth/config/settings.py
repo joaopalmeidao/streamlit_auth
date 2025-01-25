@@ -7,7 +7,40 @@ import os
 
 MAIN_LOGGER_NAME = "main_logger"
 
-logger = logging.getLogger(MAIN_LOGGER_NAME)
+class CustomFormatter(logging.Formatter):
+    '''Classe para customizar o Logger'''
+
+    grey = "\x1b[38;20m"
+    yellow = "\x1b[33;20m"
+    red = "\x1b[31;20m"
+    bold_red = "\x1b[31;1m"
+    reset = "\x1b[0m"
+    
+    format = "[%(asctime)s] " 
+    # if settings.DEBUG: 
+    #     format+= "{%(pathname)s:%(lineno)d}"
+    format += " %(levelname)s - %(message)s"
+
+    FORMATS = {
+        logging.DEBUG: grey + format + reset,
+        logging.INFO: grey + format + reset,
+        logging.WARNING: yellow + format + reset,
+        logging.ERROR: red + format + reset,
+        logging.CRITICAL: bold_red + format + reset
+    }
+
+    def format(self, record):
+        """_summary_
+
+        Args:
+            record (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        log_fmt = self.FORMATS.get(record.levelno)
+        formatter = logging.Formatter(log_fmt)
+        return formatter.format(record)
 
 # Função auxiliar para converter strings para booleanos
 def str_to_bool(value: str) -> bool:
@@ -73,6 +106,22 @@ DB_URI = os.getenv("DB_URI", _DEFAULT_DB_URI)
 # Caminho do arquivo JSON de configuração de aplicativos
 APP_NAMES_FILE = os.getenv("APP_NAMES_FILE", "config/app_names.json")
 APP_NAMES = load_json_file(APP_NAMES_FILE, {"APP_NAMES": []})["APP_NAMES"]
+
+# ////////////////////////////////////////////
+# logger:
+# ////////////////////////////////////////////
+
+logger = logging.getLogger(MAIN_LOGGER_NAME)
+
+console_handler = logging.StreamHandler()
+console_handler.setLevel(LOG_LEVEL)
+console_handler.setFormatter(CustomFormatter())
+
+# Evita que o logger propague mensagens para o logger pai (root)
+logger.propagate = False
+
+logger.setLevel(LOG_LEVEL)
+logger.addHandler(console_handler)
 
 # ////////////////////////////////////////////
 # Configuração de Email:

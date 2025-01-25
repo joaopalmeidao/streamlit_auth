@@ -4,6 +4,7 @@ from streamlit_auth.config import settings
 from streamlit_auth.authentication.backend.models import ROLES
 from streamlit_auth.authentication.backend.auth import (
     Authenticate,
+    display_errors,
 )
 
 
@@ -66,9 +67,9 @@ def users_manager_page():
                         st.success("Senha atualizada com sucesso!")
                         st.rerun()
                     except Exception as e:
-                        st.error(f"Erro ao atualizar senha: {str(e)}")
+                        display_errors(e)
                 else:
-                    st.error("As senhas não coincidem.")
+                    display_errors(e)
 
         elif selected_action == "Atualizar Dados":
             st.write("### Atualizar Dados do Usuário")
@@ -88,7 +89,7 @@ def users_manager_page():
                     st.success("Dados do usuário atualizados com sucesso!")
                     st.rerun()
                 except Exception as e:
-                    st.error(f"Erro ao atualizar dados: {str(e)}")
+                    display_errors(e)
 
         elif selected_action == "Adicionar Usuário":
             st.write("### Adicionar Novo Usuário")
@@ -105,9 +106,9 @@ def users_manager_page():
                         st.success("Usuário adicionado com sucesso!")
                         st.rerun()
                     except Exception as e:
-                        st.error(f"Erro ao adicionar usuário: {str(e)}")
+                        display_errors(e)
                 else:
-                    st.error("As senhas não coincidem.")
+                    display_errors(e)
 
         elif selected_action == "Desativar Usuário":
             st.write("### Desativar Usuário")
@@ -117,7 +118,7 @@ def users_manager_page():
                     st.success("Usuário desativado com sucesso!")
                     st.rerun()
                 except Exception as e:
-                    st.error(f"Erro ao desativar usuário: {str(e)}")
+                    display_errors(e)
 
         elif selected_action == "Ativar Usuário":
             st.write("### Ativar Usuário")
@@ -127,7 +128,7 @@ def users_manager_page():
                     st.success("Usuário ativado com sucesso!")
                     st.rerun()
                 except Exception as e:
-                    st.error(f"Erro ao ativar usuário: {str(e)}")
+                    display_errors(e)
 
         elif selected_action == "Deletar Usuário":
             st.write("### Deletar Usuário")
@@ -138,7 +139,7 @@ def users_manager_page():
                     st.success("Usuário deletado com sucesso!")
                     st.rerun()
                 except Exception as e:
-                    st.error(f"Erro ao deletar usuário: {str(e)}")
+                    display_errors(e)
 
         elif selected_action == "Resetar 2FA":
             st.write("### Resetar 2FA")
@@ -148,7 +149,7 @@ def users_manager_page():
                     st.success("2FA resetado com sucesso!")
                     st.rerun()
                 except Exception as e:
-                    st.error(f"Erro ao resetar 2FA: {str(e)}")
+                    display_errors(e)
 
         elif selected_action == "Resetar Sessões":
             st.write("### Resetar Sessões")
@@ -158,4 +159,4 @@ def users_manager_page():
                     st.success("Sessões do usuário resetadas com sucesso!")
                     st.rerun()
                 except Exception as e:
-                    st.error(f"Erro ao resetar sessões: {str(e)}")
+                    display_errors(e)

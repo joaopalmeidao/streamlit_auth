@@ -8,6 +8,7 @@ import logging
 
 from streamlit_auth.config import settings
 
+
 logger = logging.getLogger(settings.MAIN_LOGGER_NAME)
 
 
@@ -98,14 +99,11 @@ class SendMail:
                 self.email_msg.attach(img_mime)
                 logger.info(f'{key} Anexado!')
 
-    def enviar_email(self, message, arquivos=None, imagens=None):
+    def enviar_email(self, message, arquivos={}, imagens={}):
         """Envia o e-mail."""
         if not self.server:
             logger.error("Servidor de e-mail não conectado. Use 'connect()' ou o gerenciador de contexto.")
             raise Exception("Servidor de e-mail não conectado.")
-
-        arquivos = arquivos or {}
-        imagens = imagens or {}
 
         logger.info('Enviando E-mail para: %s', self.destinatarios + self.copia + self.copia_oculta)
         self._load_message(message)
