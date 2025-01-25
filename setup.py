@@ -27,6 +27,13 @@ setup(
     url="https://github.com/joaopalmeidao/streamlit_auth",
     packages=find_packages(),
     install_requires=read_requirements(),
+    extras_require={
+        "dev": [
+            "pytest",
+            "pytest-mock",
+            "twine",
+        ],
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
