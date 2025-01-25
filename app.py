@@ -43,6 +43,12 @@ def test_page():
     
     tabs = st.tabs(opcoes_livres)
     
+    # Rodapé
+    st.markdown("""
+    ---
+    *Desenvolvido por João Paulo Almeida. Conecte-se comigo no [GitHub](https://github.com/joaopalmeidao) e [LinkedIn](https://www.linkedin.com/in/joaopalmeidao/).*
+    """)
+    
     with tabs[0]:
         doc_page()
     
@@ -104,12 +110,6 @@ def test_page():
             elif selected_option == "Perfil de Usuário":
                 user_profile_page(user_data)
     
-    # Rodapé
-    st.markdown("""
-    ---
-    *Desenvolvido por João Paulo Almeida. Conecte-se comigo no [GitHub](https://github.com/joaopalmeidao) e [LinkedIn](https://www.linkedin.com/in/joaopalmeidao/).*
-    """)
-
 
 if __name__ == '__main__':
     Authenticate.create_admin_if_not_exists()
