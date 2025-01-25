@@ -11,8 +11,8 @@ from streamlit_auth.authentication import (
 from streamlit_auth.config import settings
 from doc.app.documentacao import doc_page
 
-logger = logging.getLogger(settings.MAIN_LOGGER_NAME)
 
+logger = logging.getLogger(settings.MAIN_LOGGER_NAME)
 
 TITLE = "Strealit Auth Library"
 
@@ -33,15 +33,12 @@ def test_page():
         f'🔑 {TITLE}'
         ]
     
-    selected_livre = st.sidebar.radio(
-        "Ir para",
-        sorted(opcoes_livres),
-        )
+    tabs = st.tabs(opcoes_livres)
     
-    if selected_livre == "📝 Documentação":
+    with tabs[0]:
         doc_page()
     
-    elif selected_livre == f"🔑 {TITLE}":
+    with tabs[1]:
     
         authenticator = Authenticate(
             secret_key='98duasng@89duas98duan9d8a21321u@#0dsa9',

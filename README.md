@@ -1,4 +1,8 @@
-# Streamlit Auth Library
+# # Streamlit Auth Library
+
+<div style="text-align: center;">
+    <img src="https://github.com/joaopalmeidao/streamlit_auth/blob/main/doc/imgs/logo.png?raw=True" alt="Logo" width="300"/>
+</div>
 
 [![Python version](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/)
 [![Streamlit version](https://img.shields.io/badge/Streamlit-1.41.1-red)](https://streamlit.io/)

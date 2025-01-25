@@ -17,7 +17,6 @@ logger = logging.getLogger(settings.MAIN_LOGGER_NAME)
 def doc_page():
     st.title("📄 Documentação da Streamlit Auth Library")
     
-    st.sidebar.title("Navegação")
     secoes = [
         "📝 Descrição",
         "🚀 Instalação",
@@ -33,7 +32,7 @@ def doc_page():
         "📞 Contato",
     ]
 
-    secao = st.sidebar.radio("Ir para", secoes)
+    secao = st.selectbox("Ir para", secoes)
     
     if secao == "📝 Descrição":
         st.header("📝 Descrição")
