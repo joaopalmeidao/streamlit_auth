@@ -490,7 +490,7 @@ class Authenticate:
             result = execute_query('''
                 SELECT username, reset_tfa_token_expiry
                 FROM TbUsuarioStreamlit
-                WHERE reset_tfa_token_expiry = :token
+                WHERE reset_tfa_token = :token
             ''', params={'token': token}).fetchone()
 
             if not result:
