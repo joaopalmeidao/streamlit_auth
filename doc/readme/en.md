@@ -56,7 +56,7 @@ The Streamlit Auth Library is a robust authentication and user management librar
 pip install streamlit-auth-mfa
 ```
 
-## Installation
+## Configuration
 
 The library uses environment variables and configuration files to customize behavior. Make sure to set up the required files before using the library.
 
