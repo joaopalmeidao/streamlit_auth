@@ -667,7 +667,7 @@ class Authenticate:
             login_form = container.form('Login')
             login_form.subheader(form_name)
             
-            username = login_form.text_input('Username', key='login_username_input').lower().strip()
+            username = login_form.text_input('Username', key='login_username_input').strip()
             password = login_form.text_input('Password', type='password', key='login_password_input')
             
             if login_form.form_submit_button('Login'):
