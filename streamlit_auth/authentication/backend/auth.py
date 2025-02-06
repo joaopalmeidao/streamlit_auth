@@ -396,14 +396,14 @@ class Authenticate:
                         st.error('Preencha o username')
                         return
                     with st.spinner('Enviando...'):
-                        result = execute_query('''
+                        df = pd.read_sql(text('''
                             SELECT email
                             FROM TbUsuarioStreamlit
                             WHERE username = :username
-                        ''', params={'username': username}).fetchone()
+                        '''), engine, params={'username': username}).head(1)
 
-                        if result:
-                            email = result[0]
+                        if not df.empty:
+                            email = df.email[0]
                             token, _ = Authenticate.generate_reset_password_token(username)
                             reset_url = f"{self.site_name}?password_token={token}"
                             Authenticate.send_reset_email(username, email, reset_url, "Senha")
@@ -414,19 +414,20 @@ class Authenticate:
         if not token:
             return
         
-        result = execute_query('''
+        df = pd.read_sql(text('''
             SELECT username, reset_password_token_expiry
             FROM TbUsuarioStreamlit
             WHERE reset_password_token = :token
-        ''', params={'token': token}).fetchone()
+        '''), engine, params={'token': token}).head(1)
 
+        
         st.title("Redefinir Senha")
-        if not result:
+        if df.empty:
             st.error("Token inválido.")
             st.query_params.clear()
             return
 
-        username, expiry = result
+        username, expiry = df.username[0], df.reset_password_token_expiry[0]
         if datetime.utcnow() > pd.to_datetime(expiry):
             st.error("Token expirado.")
             st.query_params.clear()
@@ -468,14 +469,14 @@ class Authenticate:
                             st.error('Preencha o username')
                             return
                         with st.spinner('Enviando...'):
-                            result = execute_query('''
+                            df = pd.read_sql(text('''
                                 SELECT email
                                 FROM TbUsuarioStreamlit
                                 WHERE username = :username
-                            ''', params={'username': username}).fetchone()
+                            '''), engine, params={'username': username}).head(1)
 
-                            if result:
-                                email = result[0]
+                            if not df.empty:
+                                email = df.email[0]
                                 token, _ = Authenticate.generate_reset_tfa_token(username)
                                 reset_url = f"{self.site_name}?2fa_token={token}"
                                 Authenticate.send_reset_email(username, email, reset_url, "2FA")
@@ -487,19 +488,19 @@ class Authenticate:
             if not token:
                 return
 
-            result = execute_query('''
+            df = pd.read_sql(text('''
                 SELECT username, reset_tfa_token_expiry
                 FROM TbUsuarioStreamlit
                 WHERE reset_tfa_token = :token
-            ''', params={'token': token}).fetchone()
-
-            if not result:
+            '''), engine, params={'token': token}).head(1)
+            
+            if df.empty:
                 st.error("Token inválido.")
                 st.query_params.clear()
                 return
 
             st.title("Redefinir 2FA")
-            username, expiry = result
+            username, expiry = df.username[0], df.reset_tfa_token_expiry[0]
             if datetime.utcnow() > pd.to_datetime(expiry):
                 st.error("Token expirado.")
                 st.query_params.clear()
@@ -530,19 +531,19 @@ class Authenticate:
         if not token:
             return
         
-        result = execute_query('''
+        df = pd.read_sql(text('''
             SELECT username, activation_token_expiry
             FROM TbUsuarioStreamlit
             WHERE activation_token = :token
-        ''', params={'token': token}).fetchone()
+        '''), engine, params={'token': token}).head(1)
         
         st.title("Ativar Conta")
-        if not result:
+        if df.empty:
             st.error("Token inválido.")
             st.query_params.clear()
             return
 
-        username, expiry = result
+        username, expiry = df.username[0], df.activation_token_expiry[0]
         if datetime.utcnow() > pd.to_datetime(expiry):
             st.error("Token expirado.")
             st.query_params.clear()
@@ -576,14 +577,14 @@ class Authenticate:
                             return
                         
                         with st.spinner('Enviando...'):
-                            result = execute_query('''
+                            df = pd.read_sql(text('''
                                 SELECT email
                                 FROM TbUsuarioStreamlit
                                 WHERE username = :username
-                            ''', params={'username': username}).fetchone()
+                            '''), engine, params={'username': username}).head(1)
                             
-                            if result:
-                                email = result[0]
+                            if not df.empty:
+                                email = df.email[0]
                                 token, _ = self.generate_activation_token(username)
                                 activation_url = f"{self.site_name}?activation_token={token}"
                                 self.send_activation_email(username, email, activation_url)
